@@ -1,0 +1,3 @@
+var lang = "lox";
+var num = 0.69;
+
