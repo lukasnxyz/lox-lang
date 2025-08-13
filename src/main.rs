@@ -9,7 +9,7 @@ pub enum LoxError<'a> {
     Io(io::Error),
     ParseFloatError(std::num::ParseFloatError),
     InvalidPrompt(String),
-    EndOfFile,
+    EOF,
     CodeError(usize, &'a str, &'a str), // line, where, msg
 }
 
@@ -19,7 +19,7 @@ impl<'a> fmt::Display for LoxError<'a> {
             LoxError::Io(e) => write!(f, "io error: {}", e),
             LoxError::ParseFloatError(e) => write!(f, "parse float error: {}", e),
             LoxError::InvalidPrompt(msg) => write!(f, "invalid input: {}", msg),
-            LoxError::EndOfFile => write!(f, "hit eof in the middle of parsing"),
+            LoxError::EOF => write!(f, "hit eof in the middle of parsing"),
             LoxError::CodeError(line, location, msg) => {
                 write!(f, "[Line {} Error in {}]: {}", line, location, msg)
             }
@@ -145,28 +145,32 @@ impl fmt::Display for TokenType {
 }
 */
 
+enum Object {
+    Str(String),
+    Num(f64),
+    None,
+}
+
 pub struct Token {
     token_type: TokenType,
-
     lexeme: String,
-    literal: Option<String>, // NOTE: String for now
+    literal: Object,
     line: usize,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:?} '{}' {}",
-            self.token_type,
-            self.lexeme,
-            self.literal.as_deref().unwrap_or("None")
-        )
+        write!(f, "{:?} '{}' ", self.token_type, self.lexeme)?;
+        match &self.literal {
+            Object::Str(s) => write!(f, "{}", s),
+            Object::Num(n) => write!(f, "{}", n),
+            Object::None => write!(f, "None"),
+        }
     }
 }
 
 impl Token {
-    fn new(token_type: TokenType, lexeme: &str, literal: Option<String>, line: usize) -> Self {
+    fn new(token_type: TokenType, lexeme: &str, literal: Object, line: usize) -> Self {
         Self {
             token_type,
             lexeme: lexeme.to_owned(),
@@ -175,6 +179,222 @@ impl Token {
         }
     }
 }
+
+// NOTE: do this with rust macros
+/*
+abstract class Expr {
+  interface Visitor<R> {
+    R visitAssignExpr(Assign expr);
+    R visitBinaryExpr(Binary expr);
+    R visitCallExpr(Call expr);
+    R visitGetExpr(Get expr);
+    R visitGroupingExpr(Grouping expr);
+    R visitLiteralExpr(Literal expr);
+    R visitLogicalExpr(Logical expr);
+    R visitSetExpr(Set expr);
+    R visitSuperExpr(Super expr);
+    R visitThisExpr(This expr);
+    R visitUnaryExpr(Unary expr);
+    R visitVariableExpr(Variable expr);
+  }
+
+// Nested Expr classes here...
+//> expr-assign
+  static class Assign extends Expr {
+    Assign(Token name, Expr value) {
+      this.name = name;
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitAssignExpr(this);
+    }
+
+    final Token name;
+    final Expr value;
+  }
+//< expr-assign
+//> expr-binary
+  static class Binary extends Expr {
+    Binary(Expr left, Token operator, Expr right) {
+      this.left = left;
+      this.operator = operator;
+      this.right = right;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitBinaryExpr(this);
+    }
+
+    final Expr left;
+    final Token operator;
+    final Expr right;
+  }
+//< expr-binary
+//> expr-call
+  static class Call extends Expr {
+    Call(Expr callee, Token paren, List<Expr> arguments) {
+      this.callee = callee;
+      this.paren = paren;
+      this.arguments = arguments;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitCallExpr(this);
+    }
+
+    final Expr callee;
+    final Token paren;
+    final List<Expr> arguments;
+  }
+//< expr-call
+//> expr-get
+  static class Get extends Expr {
+    Get(Expr object, Token name) {
+      this.object = object;
+      this.name = name;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitGetExpr(this);
+    }
+
+    final Expr object;
+    final Token name;
+  }
+//< expr-get
+//> expr-grouping
+  static class Grouping extends Expr {
+    Grouping(Expr expression) {
+      this.expression = expression;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitGroupingExpr(this);
+    }
+
+    final Expr expression;
+  }
+//< expr-grouping
+//> expr-literal
+  static class Literal extends Expr {
+    Literal(Object value) {
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitLiteralExpr(this);
+    }
+
+    final Object value;
+  }
+//< expr-literal
+//> expr-logical
+  static class Logical extends Expr {
+    Logical(Expr left, Token operator, Expr right) {
+      this.left = left;
+      this.operator = operator;
+      this.right = right;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitLogicalExpr(this);
+    }
+
+    final Expr left;
+    final Token operator;
+    final Expr right;
+  }
+//< expr-logical
+//> expr-set
+  static class Set extends Expr {
+    Set(Expr object, Token name, Expr value) {
+      this.object = object;
+      this.name = name;
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitSetExpr(this);
+    }
+
+    final Expr object;
+    final Token name;
+    final Expr value;
+  }
+//< expr-set
+//> expr-super
+  static class Super extends Expr {
+    Super(Token keyword, Token method) {
+      this.keyword = keyword;
+      this.method = method;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitSuperExpr(this);
+    }
+
+    final Token keyword;
+    final Token method;
+  }
+//< expr-super
+//> expr-this
+  static class This extends Expr {
+    This(Token keyword) {
+      this.keyword = keyword;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitThisExpr(this);
+    }
+
+    final Token keyword;
+  }
+//< expr-this
+//> expr-unary
+  static class Unary extends Expr {
+    Unary(Token operator, Expr right) {
+      this.operator = operator;
+      this.right = right;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitUnaryExpr(this);
+    }
+
+    final Token operator;
+    final Expr right;
+  }
+//< expr-unary
+//> expr-variable
+  static class Variable extends Expr {
+    Variable(Token name) {
+      this.name = name;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitVariableExpr(this);
+    }
+
+    final Token name;
+  }
+//< expr-variable
+
+  abstract <R> R accept(Visitor<R> visitor);
+}
+*/
 
 trait CharCheck {
     fn is_lalpha(&self) -> bool;
@@ -238,7 +458,7 @@ impl Lexer {
     }
 
     fn lex_token<'a>(&mut self) -> Result<(), LoxError<'a>> {
-        let c = self.advance();
+        let c = self.advance()?;
         match c {
             '(' => self.add_token(TokenType::LeftParen),
             ')' => self.add_token(TokenType::RightParen),
@@ -251,7 +471,7 @@ impl Lexer {
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
             '!' => {
-                let amatch = self.amatch('=');
+                let amatch = self.amatch('=')?;
                 self.add_token(if amatch {
                     TokenType::BangEqual
                 } else {
@@ -259,7 +479,7 @@ impl Lexer {
                 })
             }
             '=' => {
-                let amatch = self.amatch('=');
+                let amatch = self.amatch('=')?;
                 self.add_token(if amatch {
                     TokenType::EqualEqual
                 } else {
@@ -267,7 +487,7 @@ impl Lexer {
                 })
             }
             '<' => {
-                let amatch = self.amatch('=');
+                let amatch = self.amatch('=')?;
                 self.add_token(if amatch {
                     TokenType::LessEqual
                 } else {
@@ -275,7 +495,7 @@ impl Lexer {
                 })
             }
             '>' => {
-                let amatch = self.amatch('=');
+                let amatch = self.amatch('=')?;
                 self.add_token(if amatch {
                     TokenType::GreaterEqual
                 } else {
@@ -283,9 +503,9 @@ impl Lexer {
                 })
             }
             '/' => {
-                if self.amatch('/') {
-                    while self.peek() != '\n' && !self.is_at_end() {
-                        self.advance();
+                if self.amatch('/')? {
+                    while self.peek()? != '\n' && !self.is_at_end() {
+                        self.advance()?;
                     }
                 } else {
                     self.add_token(TokenType::Slash)
@@ -300,7 +520,7 @@ impl Lexer {
                 if c.is_numeric() {
                     self.number()?;
                 } else if c.is_lalpha() {
-                    self.identifier();
+                    self.identifier()?;
                 } else {
                     return Err(LoxError::CodeError(
                         self.line,
@@ -313,9 +533,9 @@ impl Lexer {
         Ok(())
     }
 
-    fn identifier(&mut self) {
-        while self.peek().is_lalphanumeric() {
-            self.advance();
+    fn identifier<'a>(&mut self) -> Result<(), LoxError<'a>> {
+        while self.peek()?.is_lalphanumeric() {
+            self.advance()?;
         }
 
         let text = &self.source[self.start..self.current];
@@ -326,39 +546,39 @@ impl Lexer {
             .clone();
 
         self.add_token(token_type);
+
+        Ok(())
     }
 
     fn number<'a>(&mut self) -> Result<(), LoxError<'a>> {
-        while self.peek().is_numeric() {
-            self.advance();
+        while self.peek()?.is_numeric() {
+            self.advance()?;
         }
 
-        if self.peek() == '.' && self.peek_next().is_numeric() {
-            self.advance();
+        if self.peek()? == '.' && self.peek_next()?.is_numeric() {
+            self.advance()?;
 
-            while self.peek().is_numeric() {
-                self.advance();
+            while self.peek()?.is_numeric() {
+                self.advance()?;
             }
         }
 
         let s = &self.source[self.start..self.current];
-        /*
         let float_literal = match s.parse::<f64>() {
             Ok(num) => num,
             Err(e) => return Err(LoxError::ParseFloatError(e)),
         };
-        */
-        self.add_token_literal(TokenType::Number, Some(s.to_string()));
+        self.add_token_literal(TokenType::Number, Object::Num(float_literal));
 
         Ok(())
     }
 
     fn string<'a>(&mut self) -> Result<(), LoxError<'a>> {
-        while self.peek() != '"' && !self.is_at_end() {
-            if self.peek() == '\n' {
+        while self.peek()? != '"' && !self.is_at_end() {
+            if self.peek()? == '\n' {
                 self.line += 1;
             }
-            self.advance();
+            self.advance()?;
         }
 
         if self.is_at_end() {
@@ -369,59 +589,65 @@ impl Lexer {
             ));
         }
 
-        self.advance(); // closing "
+        self.advance()?; // closing "
 
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token_literal(TokenType::LoxString, Some(value.to_string()));
+        self.add_token_literal(TokenType::LoxString, Object::Str(value.to_string()));
 
         Ok(())
     }
 
-    fn peek(&self) -> char {
+    fn peek<'a>(&self) -> Result<char, LoxError<'a>> {
         if self.is_at_end() {
-            '\0'
+            Ok('\0')
         } else {
-            // TODO: NO UNWRAP
-            self.source.chars().nth(self.current).unwrap()
+            match self.source.chars().nth(self.current) {
+                Some(c) => Ok(c),
+                None => Err(LoxError::EOF),
+            }
         }
     }
 
-    fn peek_next(&self) -> char {
+    fn peek_next<'a>(&self) -> Result<char, LoxError<'a>> {
         if self.current + 1 >= self.source.len() {
-            '\0'
+            Ok('\0')
         } else {
-            // TODO: NO UNWRAP
-            self.source.chars().nth(self.current + 1).unwrap()
+            match self.source.chars().nth(self.current + 1) {
+                Some(c) => Ok(c),
+                None => Err(LoxError::EOF),
+            }
         }
     }
 
-    fn amatch(&mut self, expected: char) -> bool {
+    fn amatch<'a>(&mut self, expected: char) -> Result<bool, LoxError<'a>> {
         if self.is_at_end() {
-            return false;
+            return Ok(false);
         }
 
-        // TODO: NO UNWRAP
-        if self.source.chars().nth(self.current).unwrap() != expected {
-            return false;
+        match self.source.chars().nth(self.current) {
+            Some(curr_char) if curr_char == expected => {
+                self.current += 1;
+                Ok(true)
+            },
+            Some(_) => Ok(false),
+            None => Err(LoxError::EOF),
         }
-
-        self.current += 1;
-
-        true
     }
 
-    fn advance(&mut self) -> char {
-        // TODO: NO UNWRAP
-        let c = self.source.chars().nth(self.current).unwrap();
+    fn advance<'a>(&mut self) -> Result<char, LoxError<'a>> {
+        let c = self.source.chars().nth(self.current);
         self.current += 1;
-        c
+        match c {
+            Some(c) => Ok(c),
+            None => Err(LoxError::EOF),
+        }
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        self.add_token_literal(token_type, None);
+        self.add_token_literal(token_type, Object::None);
     }
 
-    fn add_token_literal(&mut self, token_type: TokenType, literal: Option<String>) {
+    fn add_token_literal(&mut self, token_type: TokenType, literal: Object) {
         self.tokens.push(Token::new(
             token_type,
             &self.source[self.start..self.current],
@@ -437,7 +663,7 @@ impl Lexer {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "", None, self.line));
+            .push(Token::new(TokenType::Eof, "", Object::None, self.line));
         Ok(&self.tokens)
     }
 }
@@ -448,7 +674,7 @@ fn main() {
     let mut lox = Lox::new();
 
     if args.len() > 2 {
-        println!("usage: lox [script]");
+        println!("usage: lox [script], or lox (for repl)");
         return;
     } else if args.len() == 2 {
         lox.run_file(&args[0]).unwrap();
