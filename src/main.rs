@@ -1,4 +1,8 @@
-use std::{env, fmt, fs, io::{self, Write}, collections::HashMap};
+use std::{
+    collections::HashMap,
+    env, fmt, fs,
+    io::{self, Write},
+};
 
 #[derive(Debug)]
 pub enum LoxError<'a> {
@@ -47,8 +51,8 @@ impl Lox {
     }
 
     fn run<'a>(source: &str) -> Result<(), LoxError<'a>> {
-        let mut scanner = Scanner::new(source);
-        let tokens = scanner.scan_tokens().unwrap();
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.lex_tokens().unwrap();
 
         for token in tokens {
             println!("{}", token);
@@ -143,6 +147,7 @@ impl fmt::Display for TokenType {
 
 pub struct Token {
     token_type: TokenType,
+
     lexeme: String,
     literal: Option<String>, // NOTE: String for now
     line: usize,
@@ -171,16 +176,33 @@ impl Token {
     }
 }
 
-struct Scanner {
+trait CharCheck {
+    fn is_lalpha(&self) -> bool;
+    fn is_lalphanumeric(&self) -> bool;
+}
+
+impl CharCheck for char {
+    fn is_lalpha(&self) -> bool {
+        (*self >= 'a' && *self <= 'z') || (*self >= 'A' && *self <= 'Z') || *self == '_'
+    }
+
+    fn is_lalphanumeric(&self) -> bool {
+        self.is_lalpha() || self.is_numeric()
+    }
+}
+
+struct Lexer {
     source: String,
     tokens: Vec<Token>,
+
     start: usize,
     current: usize,
     line: usize,
+
     keywords: HashMap<String, TokenType>,
 }
 
-impl Scanner {
+impl Lexer {
     fn new(source: &str) -> Self {
         let keywords = HashMap::from([
             ("and".to_string(), TokenType::And),
@@ -201,7 +223,7 @@ impl Scanner {
             ("while".to_string(), TokenType::While),
         ]);
 
-        Scanner {
+        Lexer {
             source: source.to_owned(),
             tokens: vec![],
             start: 0,
@@ -215,7 +237,7 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token<'a>(&mut self) -> Result<(), LoxError<'a>> {
+    fn lex_token<'a>(&mut self) -> Result<(), LoxError<'a>> {
         let c = self.advance();
         match c {
             '(' => self.add_token(TokenType::LeftParen),
@@ -235,7 +257,7 @@ impl Scanner {
                 } else {
                     TokenType::Bang
                 })
-            },
+            }
             '=' => {
                 let amatch = self.amatch('=');
                 self.add_token(if amatch {
@@ -243,7 +265,7 @@ impl Scanner {
                 } else {
                     TokenType::Equal
                 })
-            },
+            }
             '<' => {
                 let amatch = self.amatch('=');
                 self.add_token(if amatch {
@@ -251,7 +273,7 @@ impl Scanner {
                 } else {
                     TokenType::Less
                 })
-            },
+            }
             '>' => {
                 let amatch = self.amatch('=');
                 self.add_token(if amatch {
@@ -259,7 +281,7 @@ impl Scanner {
                 } else {
                     TokenType::Greater
                 })
-            },
+            }
             '/' => {
                 if self.amatch('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
@@ -268,31 +290,31 @@ impl Scanner {
                 } else {
                     self.add_token(TokenType::Slash)
                 }
-            },
-            ' ' => {},
-            '\r' => {},
-            '\t' => {},
+            }
+            ' ' => {}
+            '\r' => {}
+            '\t' => {}
             '\n' => self.line += 1,
             '"' => self.string()?,
             _ => {
                 if c.is_numeric() {
                     self.number()?;
-                } else if self.is_alpha(c) {
+                } else if c.is_lalpha() {
                     self.identifier();
                 } else {
                     return Err(LoxError::CodeError(
-                            self.line,
-                            "slice of source (entire line)",
-                            "encountered an unknown character or sequence of characters",
-                    ))
+                        self.line,
+                        "slice of source (entire line)",
+                        "encountered an unknown character or sequence of characters",
+                    ));
                 }
-            },
+            }
         }
         Ok(())
     }
 
     fn identifier(&mut self) {
-        while self.is_alphanumeric(self.peek()) {
+        while self.peek().is_lalphanumeric() {
             self.advance();
         }
 
@@ -341,15 +363,15 @@ impl Scanner {
 
         if self.is_at_end() {
             return Err(LoxError::CodeError(
-                    self.line,
-                    "slice of source (entire line)",
-                    "unterminated string",
+                self.line,
+                "slice of source (entire line)",
+                "unterminated string",
             ));
         }
 
         self.advance(); // closing "
 
-        let value = &self.source[self.start+1..self.current-1];
+        let value = &self.source[self.start + 1..self.current - 1];
         self.add_token_literal(TokenType::LoxString, Some(value.to_string()));
 
         Ok(())
@@ -371,16 +393,6 @@ impl Scanner {
             // TODO: NO UNWRAP
             self.source.chars().nth(self.current + 1).unwrap()
         }
-    }
-
-    fn is_alpha(&self, c: char) -> bool {
-        (c >= 'a' && c <= 'z') ||
-            (c >= 'A' && c <= 'Z') ||
-            c == '_'
-    }
-
-    fn is_alphanumeric(&self, c: char) -> bool {
-        self.is_alpha(c) || c.is_numeric()
     }
 
     fn amatch(&mut self, expected: char) -> bool {
@@ -418,13 +430,14 @@ impl Scanner {
         ))
     }
 
-    fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxError<'_>> {
+    fn lex_tokens(&mut self) -> Result<&Vec<Token>, LoxError<'_>> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token()?;
+            self.lex_token()?;
         }
 
-        self.tokens.push(Token::new(TokenType::Eof, "", None, self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "", None, self.line));
         Ok(&self.tokens)
     }
 }
