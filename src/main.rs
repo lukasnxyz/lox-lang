@@ -180,6 +180,110 @@ impl Token {
     }
 }
 
+enum Expr {
+    Assign {
+        name: Token,
+        value: Box<Expr>,
+    },
+    Binary {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
+    Get {
+        object: Box<Expr>,
+        name: Token,
+    },
+    Grouping {
+        expression: Box<Expr>,
+    },
+    Literal {
+        value: Object,
+    },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
+    Set {
+        object: Box<Expr>,
+        name: Token,
+        value: Box<Expr>,
+    },
+    Super {
+        keyword: Token,
+        method: Token,
+    },
+    This {
+        keyword: Token,
+    },
+    Unary {
+        operator: Token,
+        right: Box<Expr>,
+    },
+    Variable {
+        name: Token,
+    },
+}
+
+impl Expr {
+    fn accept(&mut self) -> String {
+        let out = match self {
+            Expr::Assign { name, value } => "".to_string(),
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => Self::parenthesize(&operator.lexeme, &mut [left, right]),
+            Expr::Call {
+                callee, arguments, ..
+            } => "".to_string(),
+            Expr::Get { object, name } => "".to_string(),
+            Expr::Grouping { expression } => Self::parenthesize("group", &mut [expression]),
+            Expr::Literal { value } => match value {
+                Object::Str(s) => s.to_string(),
+                Object::Num(n) => n.to_string(),
+                Object::None => "None".to_string(),
+            },
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => "".to_string(),
+            Expr::Set {
+                object,
+                name,
+                value,
+            } => "".to_string(),
+            Expr::Super { keyword, method } => "".to_string(),
+            Expr::This { keyword } => "".to_string(),
+            Expr::Unary { operator, right } => Self::parenthesize(&operator.lexeme, &mut [right]),
+            Expr::Variable { name } => "".to_string(),
+        };
+
+        "".to_string()
+    }
+
+    fn parenthesize(name: &str, exprs: &mut [&mut Expr]) -> String {
+        let mut ret_str = String::new();
+        ret_str.push('(');
+        ret_str.push_str(name);
+
+        for expr in exprs {
+            ret_str.push(' ');
+            ret_str.push_str(&expr.accept());
+        }
+
+        ret_str.push(')');
+        ret_str
+    }
+}
+
 // NOTE: do this with rust macros
 /*
 abstract class Expr {
@@ -628,7 +732,7 @@ impl Lexer {
             Some(curr_char) if curr_char == expected => {
                 self.current += 1;
                 Ok(true)
-            },
+            }
             Some(_) => Ok(false),
             None => Err(LoxError::EOF),
         }
@@ -682,4 +786,3 @@ fn main() {
         lox.run_prompt().unwrap();
     }
 }
-
