@@ -83,6 +83,23 @@ impl Lox {
             self.had_error = false;
         }
     }
+
+    fn error(token: &Token, msg: &str) {
+        if token.token_type == TokenType::Eof {
+            Self::report_error(token.line, " at end", msg);
+        } else {
+            Self::report_error(token.line, &format!(" at '{}'", token.lexeme), msg);
+        }
+    }
+
+    fn report_error(line: usize, lexeme_where: &str, msg: &str) {
+        println!(
+            "\x1b[31merror: \x1b[0m {}\n  -->{}: {}",
+            msg,
+            line,
+            lexeme_where,
+        );
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -564,11 +581,18 @@ impl Lexer {
     }
 }
 
+enum ParseError<'a> {
+    Error,
+    NError(&'a str),
+    GenError(usize, &'a str), // line, msg
+}
+
 struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
 
+// TODO: a visualizeable computation graph for this would be very cool
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
@@ -708,7 +732,7 @@ impl Parser {
     }
 
     /// primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
-    fn primary(&self) -> Expr {
+    fn primary(&mut self) -> Result<Expr, ParseError>> {
         if self.amatch(&[TokenType::False]) {
             Expr::Literal {
                 value: Object::Bool(false),
@@ -727,11 +751,24 @@ impl Parser {
             }
         } else {
             let expr = self.expression();
-            consume(TokenType::RightParen, "expect ')' after expression");
+            self.consume(TokenType::RightParen, "expect ')' after expression");
             Expr::Grouping {
                 expression: Box::new(expr),
             }
         }
+    }
+
+    fn consume<'a>(&mut self, token_type: TokenType, msg: &'a str) -> Result<Token, ParseError<'a>> {
+        if self.check(&token_type) {
+            Ok(self.advance())
+        } else {
+            Err(ParseError::GenError(self.peek().line, msg))
+        }
+    }
+
+    fn error<'a>(&self, token: Token, msg: &'a str) -> ParseError<'a> {
+        Lox::error(&token, msg);
+        ParseError::Error
     }
 }
 
