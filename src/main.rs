@@ -85,7 +85,7 @@ impl Lox {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 enum TokenType {
     // single-character tokens
     LeftParen,
@@ -145,12 +145,15 @@ impl fmt::Display for TokenType {
 }
 */
 
+#[derive(Clone)]
 enum Object {
     Str(String),
     Num(f64),
+    Bool(bool),
     None,
 }
 
+#[derive(Clone)]
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -164,6 +167,7 @@ impl fmt::Display for Token {
         match &self.literal {
             Object::Str(s) => write!(f, "{}", s),
             Object::Num(n) => write!(f, "{}", n),
+            Object::Bool(b) => write!(f, "{}", b),
             Object::None => write!(f, "None"),
         }
     }
@@ -180,6 +184,8 @@ impl Token {
     }
 }
 
+// TODO: ideally make this a macro so I can dynamically just define the grammer in a string and
+//  have it expand to this
 enum Expr {
     Assign {
         name: Token,
@@ -248,6 +254,7 @@ impl Expr {
             Expr::Literal { value } => match value {
                 Object::Str(s) => s.to_string(),
                 Object::Num(n) => n.to_string(),
+                Object::Bool(b) => b.to_string(),
                 Object::None => "None".to_string(),
             },
             Expr::Logical {
@@ -276,6 +283,7 @@ impl Expr {
 
         for expr in exprs {
             ret_str.push(' ');
+            // NOTE: this could error becuase need expr.accept(self)
             ret_str.push_str(&expr.accept());
         }
 
@@ -283,222 +291,6 @@ impl Expr {
         ret_str
     }
 }
-
-// NOTE: do this with rust macros
-/*
-abstract class Expr {
-  interface Visitor<R> {
-    R visitAssignExpr(Assign expr);
-    R visitBinaryExpr(Binary expr);
-    R visitCallExpr(Call expr);
-    R visitGetExpr(Get expr);
-    R visitGroupingExpr(Grouping expr);
-    R visitLiteralExpr(Literal expr);
-    R visitLogicalExpr(Logical expr);
-    R visitSetExpr(Set expr);
-    R visitSuperExpr(Super expr);
-    R visitThisExpr(This expr);
-    R visitUnaryExpr(Unary expr);
-    R visitVariableExpr(Variable expr);
-  }
-
-// Nested Expr classes here...
-//> expr-assign
-  static class Assign extends Expr {
-    Assign(Token name, Expr value) {
-      this.name = name;
-      this.value = value;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitAssignExpr(this);
-    }
-
-    final Token name;
-    final Expr value;
-  }
-//< expr-assign
-//> expr-binary
-  static class Binary extends Expr {
-    Binary(Expr left, Token operator, Expr right) {
-      this.left = left;
-      this.operator = operator;
-      this.right = right;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitBinaryExpr(this);
-    }
-
-    final Expr left;
-    final Token operator;
-    final Expr right;
-  }
-//< expr-binary
-//> expr-call
-  static class Call extends Expr {
-    Call(Expr callee, Token paren, List<Expr> arguments) {
-      this.callee = callee;
-      this.paren = paren;
-      this.arguments = arguments;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitCallExpr(this);
-    }
-
-    final Expr callee;
-    final Token paren;
-    final List<Expr> arguments;
-  }
-//< expr-call
-//> expr-get
-  static class Get extends Expr {
-    Get(Expr object, Token name) {
-      this.object = object;
-      this.name = name;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitGetExpr(this);
-    }
-
-    final Expr object;
-    final Token name;
-  }
-//< expr-get
-//> expr-grouping
-  static class Grouping extends Expr {
-    Grouping(Expr expression) {
-      this.expression = expression;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitGroupingExpr(this);
-    }
-
-    final Expr expression;
-  }
-//< expr-grouping
-//> expr-literal
-  static class Literal extends Expr {
-    Literal(Object value) {
-      this.value = value;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitLiteralExpr(this);
-    }
-
-    final Object value;
-  }
-//< expr-literal
-//> expr-logical
-  static class Logical extends Expr {
-    Logical(Expr left, Token operator, Expr right) {
-      this.left = left;
-      this.operator = operator;
-      this.right = right;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitLogicalExpr(this);
-    }
-
-    final Expr left;
-    final Token operator;
-    final Expr right;
-  }
-//< expr-logical
-//> expr-set
-  static class Set extends Expr {
-    Set(Expr object, Token name, Expr value) {
-      this.object = object;
-      this.name = name;
-      this.value = value;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitSetExpr(this);
-    }
-
-    final Expr object;
-    final Token name;
-    final Expr value;
-  }
-//< expr-set
-//> expr-super
-  static class Super extends Expr {
-    Super(Token keyword, Token method) {
-      this.keyword = keyword;
-      this.method = method;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitSuperExpr(this);
-    }
-
-    final Token keyword;
-    final Token method;
-  }
-//< expr-super
-//> expr-this
-  static class This extends Expr {
-    This(Token keyword) {
-      this.keyword = keyword;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitThisExpr(this);
-    }
-
-    final Token keyword;
-  }
-//< expr-this
-//> expr-unary
-  static class Unary extends Expr {
-    Unary(Token operator, Expr right) {
-      this.operator = operator;
-      this.right = right;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitUnaryExpr(this);
-    }
-
-    final Token operator;
-    final Expr right;
-  }
-//< expr-unary
-//> expr-variable
-  static class Variable extends Expr {
-    Variable(Token name) {
-      this.name = name;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitVariableExpr(this);
-    }
-
-    final Token name;
-  }
-//< expr-variable
-
-  abstract <R> R accept(Visitor<R> visitor);
-}
-*/
 
 trait CharCheck {
     fn is_lalpha(&self) -> bool;
@@ -769,6 +561,177 @@ impl Lexer {
         self.tokens
             .push(Token::new(TokenType::Eof, "", Object::None, self.line));
         Ok(&self.tokens)
+    }
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    current: usize,
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Self { tokens, current: 0 }
+    }
+
+    /// expression     → equality ;
+    fn expression(&mut self) -> Expr {
+        self.equality()
+    }
+
+    /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+    fn equality(&mut self) -> Expr {
+        let mut expr = self.comparison();
+
+        while self.amatch(&[TokenType::BangEqual, TokenType::EqualEqual]) {
+            let operator = self.previous();
+            let right = self.comparison();
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    fn amatch(&mut self, types: &[TokenType]) -> bool {
+        for token_type in types {
+            if self.check(token_type) {
+                self.advance();
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn check(&self, token_type: &TokenType) -> bool {
+        if self.is_at_end() {
+            false
+        } else {
+            self.peek().token_type == *token_type
+        }
+    }
+
+    fn advance(&mut self) -> Token {
+        if self.is_at_end() {
+            self.current += 1;
+        }
+
+        self.previous()
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.peek().token_type == TokenType::Eof
+    }
+
+    fn peek(&self) -> Token {
+        // TODO: no clone here and use .get()
+        self.tokens[self.current].clone()
+    }
+
+    fn previous(&self) -> Token {
+        // TODO: no clone here and use .get()
+        self.tokens[self.current - 1].clone()
+    }
+
+    /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+    fn comparison(&mut self) -> Expr {
+        let mut expr = self.term();
+
+        while self.amatch(&[
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
+            let operator = self.previous();
+            let right = self.term();
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    /// term           → factor ( ( "-" | "+" ) factor )* ;
+    fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+
+        while self.amatch(&[TokenType::Minus, TokenType::Plus]) {
+            let operator = self.previous();
+            let right = self.unary();
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    /// factor         → unary ( ( "/" | "*" ) unary )* ;
+    fn factor(&mut self) -> Expr {
+        let mut expr = self.unary();
+
+        while self.amatch(&[TokenType::Slash, TokenType::Star]) {
+            let operator = self.previous();
+            let right = self.unary();
+            expr = Expr::Binary {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    /// unary          → ( "!" | "-" ) unary
+    fn unary(&mut self) -> Expr {
+        if self.amatch(&[TokenType::Bang, TokenType::Minus]) {
+            let operator = self.previous();
+            let right = self.unary();
+            Expr::Unary {
+                operator,
+                right: Box::new(right),
+            }
+        } else {
+            self.primary()
+        }
+    }
+
+    /// primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+    fn primary(&self) -> Expr {
+        if self.amatch(&[TokenType::False]) {
+            Expr::Literal {
+                value: Object::Bool(false),
+            }
+        } else if self.amatch(&[TokenType::True]) {
+            Expr::Literal {
+                value: Object::Bool(true),
+            }
+        } else if self.amatch(&[TokenType::Nil]) {
+            Expr::Literal {
+                value: Object::None,
+            }
+        } else if self.amatch(&[TokenType::Number, TokenType::LoxString]) {
+            Expr::Literal {
+                value: self.previous().literal, // TODO: Object converts to Expr??
+            }
+        } else {
+            let expr = self.expression();
+            consume(TokenType::RightParen, "expect ')' after expression");
+            Expr::Grouping {
+                expression: Box::new(expr),
+            }
+        }
     }
 }
 
