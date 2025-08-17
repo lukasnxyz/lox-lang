@@ -102,4 +102,3 @@ impl Token {
         self.token_type == TokenType::Eof
     }
 }
-

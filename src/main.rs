@@ -1,20 +1,11 @@
-use crate::{
-    expression::Expr,
-    lexer::Lexer,
-    parser::Parser,
-    token::{Object, Token, TokenType},
-    lox::Lox,
-};
-use std::{
-    env, fmt, fs,
-    io::{self, Write},
-};
+use crate::lox::Lox;
+use std::env;
 
 mod expression;
 mod lexer;
+mod lox;
 mod parser;
 mod token;
-mod lox;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

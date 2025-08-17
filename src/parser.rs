@@ -1,7 +1,7 @@
 use crate::{
     expression::Expr,
-    token::{Object, Token, TokenType},
     lox::Lox,
+    token::{Object, Token, TokenType},
 };
 
 #[derive(Debug)]
@@ -14,7 +14,6 @@ pub struct Parser {
     current: usize,
 }
 
-// TODO: a visualizeable computation graph for this would be very cool
 impl Parser {
     pub fn new(tokens: &Vec<Token>) -> Self {
         Self {
@@ -190,8 +189,9 @@ impl Parser {
                 },
                 "expect expression",
             );
-            self.synchronize();
-            Err(ParseError::Error("expect expression".to_string()))
+            //self.synchronize();
+            Ok(Expr::Literal { value: Object::None })
+            //Err(ParseError::Error("expect expression".to_string()))
         }
     }
 

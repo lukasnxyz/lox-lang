@@ -1,6 +1,6 @@
 use crate::{
     lox::LoxError,
-    token::{TokenType, Token, Object},
+    token::{Object, Token, TokenType},
 };
 use std::collections::HashMap;
 
@@ -275,4 +275,3 @@ impl Lexer {
         Ok(&self.tokens)
     }
 }
-
