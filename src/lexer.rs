@@ -1,5 +1,5 @@
 use crate::{
-    LoxError,
+    lox::LoxError,
     token::{TokenType, Token, Object},
 };
 use std::collections::HashMap;

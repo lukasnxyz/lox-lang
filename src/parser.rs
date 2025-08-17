@@ -1,7 +1,7 @@
 use crate::{
     expression::Expr,
     token::{Object, Token, TokenType},
-    Lox,
+    lox::Lox,
 };
 
 #[derive(Debug)]
