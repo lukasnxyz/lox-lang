@@ -1,5 +1,8 @@
 use crate::{
-    interpreter::Interpreter, lexer::Lexer, parser::Parser, token::{Token, TokenType}
+    interpreter::Interpreter,
+    lexer::Lexer,
+    parser::Parser,
+    token::{Token, TokenType},
 };
 use std::{fmt, fs, io, io::Write};
 

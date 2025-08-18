@@ -61,12 +61,16 @@ pub enum Object {
 
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Object::String(s) => s.to_string(),
-            Object::Number(n) => n.to_string(),
-            Object::Bool(b) => b.to_string(),
-            Object::None => "nil".to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Object::String(s) => s.to_string(),
+                Object::Number(n) => n.to_string(),
+                Object::Bool(b) => b.to_string(),
+                Object::None => "nil".to_string(),
+            }
+        )
     }
 }
 
