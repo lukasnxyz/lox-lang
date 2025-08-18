@@ -18,7 +18,7 @@ impl ExprVisitor<Object> for Interpreter {
         let right = right.accept(self);
         match operator.token_type {
             // TODO: no unwrap here plz
-            TokenType::Minus => Object::Num(-right.to_num().unwrap()),
+            TokenType::Minus => Object::Number(-right.to_num().unwrap()),
             TokenType::Bang => Object::Bool(!right.to_bool()),
             _ => Object::None,
         }
@@ -29,15 +29,6 @@ impl ExprVisitor<Object> for Interpreter {
         let right = right.accept(self);
 
         match operator.token_type {
-            /*
-            TokenType::Greater => Object::Bool(left.to_num().unwrap() > right.to_num().unwrap()),
-            TokenType::GreaterEqual => {
-                Object::Bool(left.to_num().unwrap() >= right.to_num().unwrap())
-            }
-            TokenType::Less => Object::Bool(left.to_num().unwrap() < right.to_num().unwrap()),
-            TokenType::LessEqual => Object::Bool(left.to_num().unwrap() <= right.to_num().unwrap()),
-            */
-
             TokenType::Greater => Object::Bool(left > right),
             TokenType::GreaterEqual => Object::Bool(left >= right),
             TokenType::Less => Object::Bool(left < right),
@@ -46,19 +37,19 @@ impl ExprVisitor<Object> for Interpreter {
             TokenType::BangEqual => Object::Bool(left != right),
             TokenType::EqualEqual => Object::Bool(left == right),
 
-            TokenType::Minus => Object::Num(left.to_num().unwrap() - right.to_num().unwrap()),
+            TokenType::Minus => Object::Number(left.to_num().unwrap() - right.to_num().unwrap()),
             TokenType::Plus => {
                 if left.is_str() && right.is_str() {
-                    Object::Str(left.to_str().unwrap() + &right.to_str().unwrap())
+                    Object::String(left.to_str().unwrap() + &right.to_str().unwrap())
                 } else if left.is_num() && right.is_num() {
-                    Object::Num(left.to_num().unwrap() + right.to_num().unwrap())
+                    Object::Number(left.to_num().unwrap() + right.to_num().unwrap())
                 } else {
                     panic!(); // can't add a string and a number
                 }
             }
 
-            TokenType::Slash => Object::Num(left.to_num().unwrap() / right.to_num().unwrap()),
-            TokenType::Star => Object::Num(left.to_num().unwrap() * right.to_num().unwrap()),
+            TokenType::Slash => Object::Number(left.to_num().unwrap() / right.to_num().unwrap()),
+            TokenType::Star => Object::Number(left.to_num().unwrap() * right.to_num().unwrap()),
 
             _ => Object::None,
         }

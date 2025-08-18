@@ -54,71 +54,6 @@ pub enum Expr {
     },
 }
 
-/*
-impl fmt::Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.accept())
-    }
-}
-
-impl Expr {
-    fn accept(&self) -> String {
-        let out = match self {
-            Expr::Assign { name, value } => "".to_string(),
-            Expr::Binary {
-                left,
-                operator,
-                right,
-            } => Self::parenthesize(&operator.lexeme, &[left, right]),
-            Expr::Call {
-                callee, arguments, ..
-            } => "".to_string(),
-            Expr::Get { object, name } => "".to_string(),
-            Expr::Grouping { expression } => Self::parenthesize("group", &[expression]),
-            Expr::Literal { value } => match value {
-                Object::Str(s) => s.to_string(),
-                Object::Num(n) => n.to_string(),
-                Object::Bool(b) => b.to_string(),
-                Object::None => "None".to_string(),
-            },
-            Expr::Logical {
-                left,
-                operator,
-                right,
-            } => "".to_string(),
-            Expr::Set {
-                object,
-                name,
-                value,
-            } => "".to_string(),
-            Expr::Super { keyword, method } => "".to_string(),
-            Expr::This { keyword } => "".to_string(),
-            Expr::Unary { operator, right } => Self::parenthesize(&operator.lexeme, &mut [right]),
-            Expr::Variable { name } => "".to_string(),
-        };
-
-        "".to_string()
-    }
-
-    fn parenthesize(name: &str, exprs: &[&Expr]) -> String {
-        let mut ret_str = String::new();
-        ret_str.push('(');
-        ret_str.push_str(name);
-
-        for expr in exprs {
-            ret_str.push(' ');
-            // NOTE: this could error becuase need expr.accept(self)
-            ret_str.push_str(&expr.accept());
-        }
-
-        ret_str.push(')');
-        ret_str
-    }
-}
-*/
-
-// this is very java like code (not a bad thing I think)
-
 pub trait ExprVisitor<T> {
     fn visit_binary_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> T;
     fn visit_grouping_expr(&self, expression: &Expr) -> T;
@@ -167,8 +102,8 @@ impl ExprVisitor<String> for AstPrinter {
 
     fn visit_literal_expr(&self, value: &Object) -> String {
         match value {
-            Object::Str(s) => s.to_string(),
-            Object::Num(n) => n.to_string(),
+            Object::String(s) => s.to_string(),
+            Object::Number(n) => n.to_string(),
             Object::Bool(b) => b.to_string(),
             Object::None => "None".to_string(),
         }

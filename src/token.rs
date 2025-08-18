@@ -51,30 +51,31 @@ pub enum TokenType {
     Eof,
 }
 
-/*
-impl fmt::Display for TokenType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-        }
-    }
-}
-*/
-
-#[derive(Clone, Debug)]
-#[derive(PartialOrd)]
+#[derive(Clone, Debug, PartialOrd)]
 pub enum Object {
-    Str(String),
-    Num(f64),
+    r#String(String),
+    Number(f64),
     Bool(bool),
     None,
+}
+
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            Object::String(s) => s.to_string(),
+            Object::Number(n) => n.to_string(),
+            Object::Bool(b) => b.to_string(),
+            Object::None => "nil".to_string(),
+        })
+    }
 }
 
 /// isEqual()
 impl PartialEq for Object {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Object::Num(a), Object::Num(b)) => a == b,
-            (Object::Str(a), Object::Str(b)) => a == b,
+            (Object::Number(a), Object::Number(b)) => a == b,
+            (Object::String(a), Object::String(b)) => a == b,
             (Object::Bool(a), Object::Bool(b)) => a == b,
             (Object::None, Object::None) => true,
             (Object::None, _) => false,
@@ -86,28 +87,28 @@ impl PartialEq for Object {
 impl Object {
     pub fn to_str(&self) -> Option<String> {
         match self {
-            Object::Str(val) => Some(val.to_string()),
+            Object::String(val) => Some(val.to_string()),
             _ => None,
         }
     }
 
     pub fn is_str(&self) -> bool {
         match self {
-            Object::Str(_) => true,
+            Object::String(_) => true,
             _ => false,
         }
     }
 
     pub fn to_num(&self) -> Option<f64> {
         match self {
-            Object::Num(val) => Some(*val),
+            Object::Number(val) => Some(*val),
             _ => None,
         }
     }
 
     pub fn is_num(&self) -> bool {
         match self {
-            Object::Num(_) => true,
+            Object::Number(_) => true,
             _ => false,
         }
     }
@@ -134,8 +135,8 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?} '{}' ", self.token_type, self.lexeme)?;
         match &self.literal {
-            Object::Str(s) => write!(f, "{}", s),
-            Object::Num(n) => write!(f, "{}", n),
+            Object::String(s) => write!(f, "{}", s),
+            Object::Number(n) => write!(f, "{}", n),
             Object::Bool(b) => write!(f, "{}", b),
             Object::None => write!(f, "None"),
         }

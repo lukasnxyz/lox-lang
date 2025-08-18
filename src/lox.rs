@@ -1,7 +1,5 @@
 use crate::{
-    lexer::Lexer,
-    parser::Parser,
-    token::{Token, TokenType},
+    interpreter::Interpreter, lexer::Lexer, parser::Parser, token::{Token, TokenType}
 };
 use std::{fmt, fs, io, io::Write};
 
@@ -56,7 +54,11 @@ impl Lox {
         let mut parser = Parser::new(tokens);
         let expression = parser.parse().unwrap();
 
-        println!("{}", expression);
+        let interpreter = Interpreter {};
+        let val = expression.accept(&interpreter);
+
+        println!("{}", val);
+        //println!("{}", expression);
 
         Ok(())
     }

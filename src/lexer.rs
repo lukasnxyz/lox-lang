@@ -176,7 +176,7 @@ impl Lexer {
             Ok(num) => num,
             Err(e) => return Err(LoxError::ParseFloatError(e)),
         };
-        self.add_token_literal(TokenType::Number, Object::Num(float_literal));
+        self.add_token_literal(TokenType::Number, Object::Number(float_literal));
 
         Ok(())
     }
@@ -200,7 +200,7 @@ impl Lexer {
         self.advance()?; // closing "
 
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token_literal(TokenType::LoxString, Object::Str(value.to_string()));
+        self.add_token_literal(TokenType::LoxString, Object::String(value.to_string()));
 
         Ok(())
     }
