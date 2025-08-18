@@ -1,13 +1,8 @@
 use crate::{
+    errors::{LoxError, ParseError},
     expression::Expr,
-    lox::Lox,
     token::{Object, Token, TokenType},
 };
-
-#[derive(Debug)]
-pub enum ParseError {
-    Error(String),
-}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -22,17 +17,17 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+    pub fn parse(&mut self) -> Result<Expr, LoxError> {
         self.expression()
     }
 
     /// expression     → equality ;
-    fn expression(&mut self) -> Result<Expr, ParseError> {
+    fn expression(&mut self) -> Result<Expr, LoxError> {
         self.equality()
     }
 
     /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Expr, ParseError> {
+    fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison()?;
 
         while self.amatch(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -86,7 +81,7 @@ impl Parser {
     }
 
     /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> Result<Expr, ParseError> {
+    fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
 
         while self.amatch(&[
@@ -108,7 +103,7 @@ impl Parser {
     }
 
     /// term           → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> Result<Expr, ParseError> {
+    fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor()?;
 
         while self.amatch(&[TokenType::Minus, TokenType::Plus]) {
@@ -125,7 +120,7 @@ impl Parser {
     }
 
     /// factor         → unary ( ( "/" | "*" ) unary )* ;
-    fn factor(&mut self) -> Result<Expr, ParseError> {
+    fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary()?;
 
         while self.amatch(&[TokenType::Slash, TokenType::Star]) {
@@ -142,7 +137,7 @@ impl Parser {
     }
 
     /// unary          → ( "!" | "-" ) unary
-    fn unary(&mut self) -> Result<Expr, ParseError> {
+    fn unary(&mut self) -> Result<Expr, LoxError> {
         if self.amatch(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
@@ -155,8 +150,8 @@ impl Parser {
         }
     }
 
-    /// primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
-    fn primary(&mut self) -> Result<Expr, ParseError> {
+    /// primary        → NUMBER | STRING | "true" | "false" | "none" | "(" expression ")" ;
+    fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.amatch(&[TokenType::False]) {
             Ok(Expr::Literal {
                 value: Object::Bool(false),
@@ -165,7 +160,7 @@ impl Parser {
             Ok(Expr::Literal {
                 value: Object::Bool(true),
             })
-        } else if self.amatch(&[TokenType::Nil]) {
+        } else if self.amatch(&[TokenType::None]) {
             Ok(Expr::Literal {
                 value: Object::None,
             })
@@ -180,31 +175,29 @@ impl Parser {
                 expression: Box::new(expr),
             })
         } else {
-            self.error(
-                Token {
-                    token_type: TokenType::RightParen,
-                    lexeme: self.peek().to_string(),
-                    literal: Object::None,
-                    line: 1,
-                },
-                "expect expression",
-            );
+            let err = LoxError::ParseError(ParseError::InvalidExpression(
+                self.peek().line,
+                self.peek().lexeme,
+                "expect expression".to_string(),
+            ));
+            LoxError::report(&err);
             self.synchronize();
-            Err(ParseError::Error("expect expression".to_string()))
+
+            // or err here
+            Ok(Expr::Literal {
+                value: Object::None,
+            })
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, ParseError> {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, LoxError> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(ParseError::Error(msg.to_string()))
+            Err(LoxError::ParseError(ParseError::EndOfExpression(
+                msg.to_string(),
+            )))
         }
-    }
-
-    fn error(&self, token: Token, msg: &str) -> ParseError {
-        Lox::error(&token, msg);
-        ParseError::Error("".to_string())
     }
 
     // pretty easy to jump forwards to the next statement as you just have to jump forward to the

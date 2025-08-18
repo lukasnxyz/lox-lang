@@ -1,45 +1,5 @@
-use crate::{
-    interpreter::Interpreter,
-    lexer::Lexer,
-    parser::Parser,
-    token::{Token, TokenType},
-};
-use std::{fmt, fs, io, io::Write};
-
-#[derive(Debug)]
-pub enum LoxError {
-    Io(io::Error),
-    ParseFloatError(std::num::ParseFloatError),
-    EOF,
-    CodeError(usize, String, String), // line, where, msg
-}
-
-impl fmt::Display for LoxError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            LoxError::Io(e) => write!(f, "io error: {}", e),
-            LoxError::ParseFloatError(e) => write!(f, "parse float error: {}", e),
-            LoxError::EOF => write!(f, "hit eof in the middle of parsing"),
-            LoxError::CodeError(line, location, msg) => {
-                write!(f, "[Line {} Error in {}]: {}", line, location, msg)
-            }
-        }
-    }
-}
-
-impl std::error::Error for LoxError {}
-
-impl From<io::Error> for LoxError {
-    fn from(err: io::Error) -> LoxError {
-        LoxError::Io(err)
-    }
-}
-
-impl From<std::num::ParseFloatError> for LoxError {
-    fn from(err: std::num::ParseFloatError) -> LoxError {
-        LoxError::ParseFloatError(err)
-    }
-}
+use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser};
+use std::{fs, io, io::Write};
 
 pub struct Lox {
     had_error: bool,
@@ -70,7 +30,7 @@ impl Lox {
         let source = fs::read_to_string(path)?;
         Self::run(&source)?;
         if self.had_error {
-            return Err(LoxError::CodeError(0, "".to_string(), "".to_string()));
+            return Err(LoxError::Error);
         }
         Ok(())
     }
@@ -87,20 +47,5 @@ impl Lox {
             Self::run(&input)?;
             self.had_error = false;
         }
-    }
-
-    pub fn error(token: &Token, msg: &str) {
-        if token.token_type == TokenType::Eof {
-            Self::report_error(token.line, " at end", msg);
-        } else {
-            Self::report_error(token.line, &format!(" at '{}'", token.lexeme), msg);
-        }
-    }
-
-    fn report_error(line: usize, lexeme_where: &str, msg: &str) {
-        println!(
-            "\x1b[31merror:\x1b[0m {}\n --> {}: {}",
-            msg, line, lexeme_where,
-        );
     }
 }

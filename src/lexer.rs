@@ -1,5 +1,5 @@
 use crate::{
-    lox::LoxError,
+    errors::{LexError, LoxError},
     token::{Object, Token, TokenType},
 };
 use std::collections::HashMap;
@@ -40,7 +40,7 @@ impl Lexer {
             ("for".to_string(), TokenType::For),
             ("fun".to_string(), TokenType::Fun),
             ("if".to_string(), TokenType::If),
-            ("nil".to_string(), TokenType::Nil),
+            ("none".to_string(), TokenType::None),
             ("or".to_string(), TokenType::Or),
             ("print".to_string(), TokenType::Print),
             ("return".to_string(), TokenType::Return),
@@ -130,11 +130,11 @@ impl Lexer {
                 } else if c.is_lalpha() {
                     self.identifier()?;
                 } else {
-                    return Err(LoxError::CodeError(
+                    return Err(LoxError::LexError(LexError::UnknownChar(
                         self.line,
                         "slice of source (entire line)".to_string(),
                         "encountered an unknown character or sequence of characters".to_string(),
-                    ));
+                    )));
                 }
             }
         }
@@ -190,11 +190,11 @@ impl Lexer {
         }
 
         if self.is_at_end() {
-            return Err(LoxError::CodeError(
+            return Err(LoxError::LexError(LexError::IncompleteString(
                 self.line,
                 "slice of source (entire line)".to_string(),
                 "unterminated string".to_string(),
-            ));
+            )));
         }
 
         self.advance()?; // closing "
@@ -211,7 +211,7 @@ impl Lexer {
         } else {
             match self.source.chars().nth(self.current) {
                 Some(c) => Ok(c),
-                None => Err(LoxError::EOF),
+                None => Err(LoxError::Eof),
             }
         }
     }
@@ -222,7 +222,7 @@ impl Lexer {
         } else {
             match self.source.chars().nth(self.current + 1) {
                 Some(c) => Ok(c),
-                None => Err(LoxError::EOF),
+                None => Err(LoxError::Eof),
             }
         }
     }
@@ -238,7 +238,7 @@ impl Lexer {
                 Ok(true)
             }
             Some(_) => Ok(false),
-            None => Err(LoxError::EOF),
+            None => Err(LoxError::Eof),
         }
     }
 
@@ -247,7 +247,7 @@ impl Lexer {
         self.current += 1;
         match c {
             Some(c) => Ok(c),
-            None => Err(LoxError::EOF),
+            None => Err(LoxError::Eof),
         }
     }
 

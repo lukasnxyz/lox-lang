@@ -38,7 +38,7 @@ pub enum TokenType {
     Fun,
     For,
     If,
-    Nil,
+    r#None,
     Or,
     Print,
     Return,
@@ -68,7 +68,7 @@ impl fmt::Display for Object {
                 Object::String(s) => s.to_string(),
                 Object::Number(n) => n.to_string(),
                 Object::Bool(b) => b.to_string(),
-                Object::None => "nil".to_string(),
+                Object::None => "none".to_string(),
             }
         )
     }
