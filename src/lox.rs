@@ -94,7 +94,7 @@ impl Lox {
 
     fn report_error(line: usize, lexeme_where: &str, msg: &str) {
         println!(
-            "\x1b[31merror: \x1b[0m {}\n  -->{}: {}",
+            "\x1b[31merror:\x1b[0m {}\n --> {}: {}",
             msg, line, lexeme_where,
         );
     }

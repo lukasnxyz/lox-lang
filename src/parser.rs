@@ -68,7 +68,7 @@ impl Parser {
     }
 
     fn advance(&mut self) -> Token {
-        if self.peek().is_eof() {
+        if !self.peek().is_eof() {
             self.current += 1;
         }
 
@@ -76,13 +76,13 @@ impl Parser {
     }
 
     fn peek(&self) -> Token {
-        // TODO: no clone here and use .get()
-        self.tokens[self.current].clone()
+        // TODO: get rid of unwrap and clone
+        self.tokens.get(self.current).unwrap().clone()
     }
 
     fn previous(&self) -> Token {
-        // TODO: no clone here and use .get()
-        self.tokens[self.current - 1].clone()
+        // TODO: get rid of unwrap and clone
+        self.tokens.get(self.current - 1).unwrap().clone()
     }
 
     /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -113,7 +113,7 @@ impl Parser {
 
         while self.amatch(&[TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous();
-            let right = self.unary()?;
+            let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator,
@@ -183,15 +183,14 @@ impl Parser {
             self.error(
                 Token {
                     token_type: TokenType::RightParen,
-                    lexeme: ")".to_string(),
+                    lexeme: self.peek().to_string(),
                     literal: Object::None,
                     line: 1,
                 },
                 "expect expression",
             );
-            //self.synchronize();
-            Ok(Expr::Literal { value: Object::None })
-            //Err(ParseError::Error("expect expression".to_string()))
+            self.synchronize();
+            Err(ParseError::Error("expect expression".to_string()))
         }
     }
 
