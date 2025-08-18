@@ -56,7 +56,7 @@ impl Lox {
         let mut parser = Parser::new(tokens);
         let expression = parser.parse().unwrap();
 
-        println!("expr: {}", expression);
+        println!("{}", expression);
 
         Ok(())
     }

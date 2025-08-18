@@ -1,6 +1,5 @@
 ## lox
-going through building the lox language from crafting interpreters
-
+going through building the lox language from crafting interpreters in rust
 
 - context free grammer (CFG)
 - and we define a set of rules that our notation must follow in order be in the language

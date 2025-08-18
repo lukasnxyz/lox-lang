@@ -61,11 +61,65 @@ impl fmt::Display for TokenType {
 */
 
 #[derive(Clone, Debug)]
+#[derive(PartialOrd)]
 pub enum Object {
     Str(String),
     Num(f64),
     Bool(bool),
     None,
+}
+
+/// isEqual()
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Object::Num(a), Object::Num(b)) => a == b,
+            (Object::Str(a), Object::Str(b)) => a == b,
+            (Object::Bool(a), Object::Bool(b)) => a == b,
+            (Object::None, Object::None) => true,
+            (Object::None, _) => false,
+            _ => false,
+        }
+    }
+}
+
+impl Object {
+    pub fn to_str(&self) -> Option<String> {
+        match self {
+            Object::Str(val) => Some(val.to_string()),
+            _ => None,
+        }
+    }
+
+    pub fn is_str(&self) -> bool {
+        match self {
+            Object::Str(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_num(&self) -> Option<f64> {
+        match self {
+            Object::Num(val) => Some(*val),
+            _ => None,
+        }
+    }
+
+    pub fn is_num(&self) -> bool {
+        match self {
+            Object::Num(_) => true,
+            _ => false,
+        }
+    }
+
+    /// isTruthy() returns false for false and nil and true for everything else
+    pub fn to_bool(&self) -> bool {
+        match self {
+            Object::Bool(val) => *val,
+            Object::None => false,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

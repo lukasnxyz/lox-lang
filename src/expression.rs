@@ -119,11 +119,13 @@ impl Expr {
 
 // this is very java like code (not a bad thing I think)
 
-trait ExprVisitor<T> {
+pub trait ExprVisitor<T> {
     fn visit_binary_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> T;
     fn visit_grouping_expr(&self, expression: &Expr) -> T;
     fn visit_literal_expr(&self, value: &Object) -> T;
     fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> T;
+
+    /*
     fn visit_assign_expr(&self, name: &Token, value: &Expr) -> T;
     fn visit_call_expr(&self, callee: &Expr, arguments: &[Expr]) -> T;
     fn visit_get_expr(&self, object: &Expr, name: &Token) -> T;
@@ -132,6 +134,7 @@ trait ExprVisitor<T> {
     fn visit_super_expr(&self, keyword: &Token, method: &Token) -> T;
     fn visit_this_expr(&self, keyword: &Token) -> T;
     fn visit_variable_expr(&self, name: &Token) -> T;
+    */
 }
 
 struct AstPrinter;
@@ -175,6 +178,7 @@ impl ExprVisitor<String> for AstPrinter {
         self.parenthesize(&operator.lexeme, &[right])
     }
 
+    /*
     fn visit_assign_expr(&self, name: &Token, value: &Expr) -> String {
         format!("(= {} {})", name.lexeme, value.accept(self))
     }
@@ -217,23 +221,27 @@ impl ExprVisitor<String> for AstPrinter {
     fn visit_variable_expr(&self, name: &Token) -> String {
         name.lexeme.clone()
     }
+    */
 }
 
 impl Expr {
-    fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> T {
         match self {
-            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
             Expr::Binary {
                 left,
                 operator,
                 right,
             } => visitor.visit_binary_expr(left, operator, right),
+            Expr::Grouping { expression } => visitor.visit_grouping_expr(expression),
+            Expr::Literal { value } => visitor.visit_literal_expr(value),
+            Expr::Unary { operator, right } => visitor.visit_unary_expr(operator, right),
+            _ => visitor.visit_literal_expr(&Object::None),
+            /*
+            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
             Expr::Call {
                 callee, arguments, ..
             } => visitor.visit_call_expr(callee, arguments),
             Expr::Get { object, name } => visitor.visit_get_expr(object, name),
-            Expr::Grouping { expression } => visitor.visit_grouping_expr(expression),
-            Expr::Literal { value } => visitor.visit_literal_expr(value),
             Expr::Logical {
                 left,
                 operator,
@@ -246,8 +254,8 @@ impl Expr {
             } => visitor.visit_set_expr(object, name, value),
             Expr::Super { keyword, method } => visitor.visit_super_expr(keyword, method),
             Expr::This { keyword } => visitor.visit_this_expr(keyword),
-            Expr::Unary { operator, right } => visitor.visit_unary_expr(operator, right),
             Expr::Variable { name } => visitor.visit_variable_expr(name),
+            */
         }
     }
 }
