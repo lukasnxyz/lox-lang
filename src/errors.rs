@@ -1,4 +1,4 @@
-use crate::red_text;
+use crate::{red_text, error_tab_text};
 use std::{fmt, io};
 
 #[derive(Debug)]
@@ -58,18 +58,20 @@ impl fmt::Display for LexError {
         match self {
             LexError::IncompleteString(line, lexeme, msg) => write!(
                 f,
-                "{}: {}\n\t[Line {} Error in '{}']: {}",
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "LexError::IncompleteString",
+                error_tab_text!(),
                 line,
                 lexeme,
                 msg
             ),
             LexError::UnknownChar(line, lexeme, msg) => write!(
                 f,
-                "{}: {}\n\t[Line {} Error in '{}']: {}",
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "LexError::UnknownChar",
+                error_tab_text!(),
                 line,
                 lexeme,
                 msg
@@ -89,9 +91,10 @@ impl fmt::Display for ParseError {
         match self {
             ParseError::InvalidExpression(line, lexeme, msg) => write!(
                 f,
-                "{}: {}\n\t[Line {} Error in '{}']: {}",
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "ParseError::InvalidExpression",
+                error_tab_text!(),
                 line,
                 lexeme,
                 msg
@@ -99,9 +102,10 @@ impl fmt::Display for ParseError {
             ParseError::EndOfExpression(msg) => {
                 write!(
                     f,
-                    "{}: {}\n\t[Error]: {}",
+                    "{}: {}\n{}[Error]: {}",
                     red_text!("error"),
                     "ParseError::EndOfExpression",
+                    error_tab_text!(),
                     msg
                 )
             }
@@ -119,9 +123,10 @@ impl fmt::Display for RuntimeError {
         match self {
             RuntimeError::InvalidTypes(line, lexeme, msg) => write!(
                 f,
-                "{}: {}\n\t[Line {} Error in '{}']: {}",
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "RuntimeError::InvalidTypes",
+                error_tab_text!(),
                 line,
                 lexeme,
                 msg
