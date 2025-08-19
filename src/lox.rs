@@ -18,7 +18,7 @@ impl Lox {
         let expression = parser.parse().unwrap();
 
         let interpreter = Interpreter {};
-        let val = expression.accept(&interpreter);
+        let val = expression.accept(&interpreter).unwrap();
 
         println!("{}", val);
         //println!("{}", expression);
@@ -35,6 +35,9 @@ impl Lox {
         Ok(())
     }
 
+    // TODO: ctrl-c does nothing, ctrl-d quits
+    // TODO: up and down arrow for history
+    // TODO: left and right arrow for editing text
     pub fn run_prompt(&mut self) -> Result<(), LoxError> {
         loop {
             let mut input = String::new();

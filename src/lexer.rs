@@ -1,5 +1,5 @@
 use crate::{
-    errors::{LexError, LoxError},
+    errors::LexError,
     token::{Object, Token, TokenType},
 };
 use std::collections::HashMap;
@@ -65,7 +65,7 @@ impl Lexer {
         self.current >= self.source.len()
     }
 
-    fn lex_token(&mut self) -> Result<(), LoxError> {
+    fn lex_token(&mut self) -> Result<(), LexError> {
         let c = self.advance()?;
         match c {
             '(' => self.add_token(TokenType::LeftParen),
@@ -130,18 +130,18 @@ impl Lexer {
                 } else if c.is_lalpha() {
                     self.identifier()?;
                 } else {
-                    return Err(LoxError::LexError(LexError::UnknownChar(
+                    return Err(LexError::UnknownChar(
                         self.line,
                         "slice of source (entire line)".to_string(),
                         "encountered an unknown character or sequence of characters".to_string(),
-                    )));
+                    ));
                 }
             }
         }
         Ok(())
     }
 
-    fn identifier(&mut self) -> Result<(), LoxError> {
+    fn identifier(&mut self) -> Result<(), LexError> {
         while self.peek()?.is_lalphanumeric() {
             self.advance()?;
         }
@@ -158,7 +158,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn number(&mut self) -> Result<(), LoxError> {
+    fn number(&mut self) -> Result<(), LexError> {
         while self.peek()?.is_numeric() {
             self.advance()?;
         }
@@ -174,14 +174,14 @@ impl Lexer {
         let s = &self.source[self.start..self.current];
         let float_literal = match s.parse::<f64>() {
             Ok(num) => num,
-            Err(e) => return Err(LoxError::ParseFloatError(e)),
+            Err(e) => return Err(LexError::ParseFloatError(e)),
         };
         self.add_token_literal(TokenType::Number, Object::Number(float_literal));
 
         Ok(())
     }
 
-    fn string(&mut self) -> Result<(), LoxError> {
+    fn string(&mut self) -> Result<(), LexError> {
         while self.peek()? != '"' && !self.is_at_end() {
             if self.peek()? == '\n' {
                 self.line += 1;
@@ -190,11 +190,11 @@ impl Lexer {
         }
 
         if self.is_at_end() {
-            return Err(LoxError::LexError(LexError::IncompleteString(
+            return Err(LexError::IncompleteString(
                 self.line,
                 "slice of source (entire line)".to_string(),
                 "unterminated string".to_string(),
-            )));
+            ));
         }
 
         self.advance()?; // closing "
@@ -205,29 +205,29 @@ impl Lexer {
         Ok(())
     }
 
-    fn peek(&self) -> Result<char, LoxError> {
+    fn peek(&self) -> Result<char, LexError> {
         if self.is_at_end() {
             Ok('\0')
         } else {
             match self.source.chars().nth(self.current) {
                 Some(c) => Ok(c),
-                None => Err(LoxError::Eof),
+                None => Err(LexError::Eof),
             }
         }
     }
 
-    fn peek_next(&self) -> Result<char, LoxError> {
+    fn peek_next(&self) -> Result<char, LexError> {
         if self.current + 1 >= self.source.len() {
             Ok('\0')
         } else {
             match self.source.chars().nth(self.current + 1) {
                 Some(c) => Ok(c),
-                None => Err(LoxError::Eof),
+                None => Err(LexError::Eof),
             }
         }
     }
 
-    fn amatch(&mut self, expected: char) -> Result<bool, LoxError> {
+    fn amatch(&mut self, expected: char) -> Result<bool, LexError> {
         if self.is_at_end() {
             return Ok(false);
         }
@@ -238,16 +238,16 @@ impl Lexer {
                 Ok(true)
             }
             Some(_) => Ok(false),
-            None => Err(LoxError::Eof),
+            None => Err(LexError::Eof),
         }
     }
 
-    fn advance(&mut self) -> Result<char, LoxError> {
+    fn advance(&mut self) -> Result<char, LexError> {
         let c = self.source.chars().nth(self.current);
         self.current += 1;
         match c {
             Some(c) => Ok(c),
-            None => Err(LoxError::Eof),
+            None => Err(LexError::Eof),
         }
     }
 
@@ -264,7 +264,7 @@ impl Lexer {
         ))
     }
 
-    pub fn lex_tokens(&mut self) -> Result<&Vec<Token>, LoxError> {
+    pub fn lex_tokens(&mut self) -> Result<&Vec<Token>, LexError> {
         while !self.is_at_end() {
             self.start = self.current;
             self.lex_token()?;

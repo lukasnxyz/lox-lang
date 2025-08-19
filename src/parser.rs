@@ -17,17 +17,17 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, LoxError> {
+    pub fn parse(&mut self) -> Result<Expr, ParseError> {
         self.expression()
     }
 
     /// expression     → equality ;
-    fn expression(&mut self) -> Result<Expr, LoxError> {
+    fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
     }
 
     /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Expr, LoxError> {
+    fn equality(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison()?;
 
         while self.amatch(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -81,7 +81,7 @@ impl Parser {
     }
 
     /// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> Result<Expr, LoxError> {
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.term()?;
 
         while self.amatch(&[
@@ -103,7 +103,7 @@ impl Parser {
     }
 
     /// term           → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> Result<Expr, LoxError> {
+    fn term(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.factor()?;
 
         while self.amatch(&[TokenType::Minus, TokenType::Plus]) {
@@ -120,7 +120,7 @@ impl Parser {
     }
 
     /// factor         → unary ( ( "/" | "*" ) unary )* ;
-    fn factor(&mut self) -> Result<Expr, LoxError> {
+    fn factor(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.unary()?;
 
         while self.amatch(&[TokenType::Slash, TokenType::Star]) {
@@ -137,7 +137,7 @@ impl Parser {
     }
 
     /// unary          → ( "!" | "-" ) unary
-    fn unary(&mut self) -> Result<Expr, LoxError> {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.amatch(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
@@ -151,7 +151,7 @@ impl Parser {
     }
 
     /// primary        → NUMBER | STRING | "true" | "false" | "none" | "(" expression ")" ;
-    fn primary(&mut self) -> Result<Expr, LoxError> {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.amatch(&[TokenType::False]) {
             Ok(Expr::Literal {
                 value: Object::Bool(false),
@@ -190,13 +190,11 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, LoxError> {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, ParseError> {
         if self.check(&token_type) {
             Ok(self.advance())
         } else {
-            Err(LoxError::ParseError(ParseError::EndOfExpression(
-                msg.to_string(),
-            )))
+            Err(ParseError::EndOfExpression(msg.to_string()))
         }
     }
 

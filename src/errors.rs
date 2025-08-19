@@ -1,11 +1,9 @@
-use crate::{red_text, error_tab_text};
+use crate::{error_indent, red_text};
 use std::{fmt, io};
 
 #[derive(Debug)]
 pub enum LoxError {
     Io(io::Error),
-    ParseFloatError(std::num::ParseFloatError),
-    Eof,
     Error,
     LexError(LexError),
     ParseError(ParseError),
@@ -16,8 +14,6 @@ impl fmt::Display for LoxError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             LoxError::Io(e) => write!(f, "io error: {}", e),
-            LoxError::ParseFloatError(e) => write!(f, "parse float error: {}", e),
-            LoxError::Eof => write!(f, "hit eof in the middle of parsing"),
             LoxError::Error => write!(f, "error"),
             LoxError::LexError(e) => write!(f, "{}", e),
             LoxError::ParseError(e) => write!(f, "{}", e),
@@ -34,12 +30,6 @@ impl From<io::Error> for LoxError {
     }
 }
 
-impl From<std::num::ParseFloatError> for LoxError {
-    fn from(err: std::num::ParseFloatError) -> LoxError {
-        LoxError::ParseFloatError(err)
-    }
-}
-
 impl LoxError {
     pub fn report(err: &LoxError) {
         println!("{}", err);
@@ -51,6 +41,14 @@ impl LoxError {
 pub enum LexError {
     IncompleteString(usize, String, String),
     UnknownChar(usize, String, String),
+    ParseFloatError(std::num::ParseFloatError),
+    Eof,
+}
+
+impl From<std::num::ParseFloatError> for LexError {
+    fn from(err: std::num::ParseFloatError) -> LexError {
+        LexError::ParseFloatError(err)
+    }
 }
 
 impl fmt::Display for LexError {
@@ -61,7 +59,7 @@ impl fmt::Display for LexError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "LexError::IncompleteString",
-                error_tab_text!(),
+                error_indent!(),
                 line,
                 lexeme,
                 msg
@@ -71,11 +69,13 @@ impl fmt::Display for LexError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "LexError::UnknownChar",
-                error_tab_text!(),
+                error_indent!(),
                 line,
                 lexeme,
                 msg
             ),
+            LexError::ParseFloatError(e) => write!(f, "parse float error: {}", e),
+            LexError::Eof => write!(f, "hit eof while lexing"),
         }
     }
 }
@@ -94,7 +94,7 @@ impl fmt::Display for ParseError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "ParseError::InvalidExpression",
-                error_tab_text!(),
+                error_indent!(),
                 line,
                 lexeme,
                 msg
@@ -105,7 +105,7 @@ impl fmt::Display for ParseError {
                     "{}: {}\n{}[Error]: {}",
                     red_text!("error"),
                     "ParseError::EndOfExpression",
-                    error_tab_text!(),
+                    error_indent!(),
                     msg
                 )
             }
@@ -115,18 +115,29 @@ impl fmt::Display for ParseError {
 
 #[derive(Debug)]
 pub enum RuntimeError {
-    InvalidTypes(usize, String, String),
+    InvalidType(usize, String, String),
+    NumberStringAddition(usize, String, String),
 }
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            RuntimeError::InvalidTypes(line, lexeme, msg) => write!(
+            RuntimeError::InvalidType(line, lexeme, msg) => write!(
                 f,
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
-                "RuntimeError::InvalidTypes",
-                error_tab_text!(),
+                "RuntimeError::InvalidType",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+            RuntimeError::NumberStringAddition(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "RuntimeError::NumberStringAddition",
+                error_indent!(),
                 line,
                 lexeme,
                 msg

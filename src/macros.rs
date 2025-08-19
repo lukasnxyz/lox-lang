@@ -6,7 +6,7 @@ macro_rules! red_text {
 }
 
 #[macro_export]
-macro_rules! error_tab_text {
+macro_rules! error_indent {
     () => {
         format!("       ")
     };

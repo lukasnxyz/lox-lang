@@ -1,57 +1,116 @@
 use crate::{
+    errors::RuntimeError,
     expression::{Expr, ExprVisitor},
     token::{Object, Token, TokenType},
 };
 
 pub struct Interpreter {}
 
-impl ExprVisitor<Object> for Interpreter {
-    fn visit_literal_expr(&self, value: &Object) -> Object {
-        value.clone()
-    }
-
-    fn visit_grouping_expr(&self, expression: &Expr) -> Object {
-        expression.accept(self)
-    }
-
-    fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> Object {
-        let right = right.accept(self);
-        match operator.token_type {
-            // TODO: no unwrap here plz
-            TokenType::Minus => Object::Number(-right.to_num().unwrap()),
-            TokenType::Bang => Object::Bool(!right.to_bool()),
-            _ => Object::None,
+impl Interpreter {
+    fn check_num_operand(operand: &Object, operator: &Token) -> Result<(), RuntimeError> {
+        match operand {
+            Object::Number(_) => Ok(()),
+            _ => Err(RuntimeError::InvalidType(
+                operator.line,
+                operator.lexeme.clone(),
+                "operand must be a number".to_string(),
+            )),
         }
     }
 
-    fn visit_binary_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> Object {
-        let left = left.accept(self);
-        let right = right.accept(self);
+    fn check_num_operands(
+        left: &Object,
+        right: &Object,
+        operator: &Token,
+    ) -> Result<(), RuntimeError> {
+        match (left, right) {
+            (Object::Number(_), Object::Number(_)) => Ok(()),
+            _ => Err(RuntimeError::InvalidType(
+                operator.line,
+                operator.lexeme.clone(),
+                "operand must be a number".to_string(),
+            )),
+        }
+    }
+}
+
+impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
+    fn visit_literal_expr(&self, value: &Object) -> Result<Object, RuntimeError> {
+        Ok(value.clone())
+    }
+
+    fn visit_grouping_expr(&self, expression: &Expr) -> Result<Object, RuntimeError> {
+        expression.accept(self)
+    }
+
+    fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> Result<Object, RuntimeError> {
+        let right = right.accept(self)?;
+        match operator.token_type {
+            TokenType::Minus => match Self::check_num_operand(&right, operator) {
+                Ok(_) => Ok(Object::Number(-right.to_num().unwrap())),
+                Err(e) => Err(e),
+            },
+            TokenType::Bang => Ok(Object::Bool(!right.to_bool())),
+            _ => Ok(Object::None),
+        }
+    }
+
+    fn visit_binary_expr(
+        &self,
+        left: &Expr,
+        operator: &Token,
+        right: &Expr,
+    ) -> Result<Object, RuntimeError> {
+        let left = left.accept(self)?;
+        let right = right.accept(self)?;
 
         match operator.token_type {
-            TokenType::Greater => Object::Bool(left > right),
-            TokenType::GreaterEqual => Object::Bool(left >= right),
-            TokenType::Less => Object::Bool(left < right),
-            TokenType::LessEqual => Object::Bool(left <= right),
+            TokenType::Greater => Ok(Object::Bool(left > right)),
+            TokenType::GreaterEqual => Ok(Object::Bool(left >= right)),
+            TokenType::Less => Ok(Object::Bool(left < right)),
+            TokenType::LessEqual => Ok(Object::Bool(left <= right)),
 
-            TokenType::BangEqual => Object::Bool(left != right),
-            TokenType::EqualEqual => Object::Bool(left == right),
+            TokenType::BangEqual => Ok(Object::Bool(left != right)),
+            TokenType::EqualEqual => Ok(Object::Bool(left == right)),
 
-            TokenType::Minus => Object::Number(left.to_num().unwrap() - right.to_num().unwrap()),
+            TokenType::Minus => {
+                Self::check_num_operands(&left, &right, operator)?;
+                Ok(Object::Number(
+                    left.to_num().unwrap() - right.to_num().unwrap(),
+                ))
+            }
             TokenType::Plus => {
                 if left.is_str() && right.is_str() {
-                    Object::String(left.to_str().unwrap() + &right.to_str().unwrap())
+                    Ok(Object::String(
+                        left.to_str().unwrap() + &right.to_str().unwrap(),
+                    ))
                 } else if left.is_num() && right.is_num() {
-                    Object::Number(left.to_num().unwrap() + right.to_num().unwrap())
+                    Ok(Object::Number(
+                        left.to_num().unwrap() + right.to_num().unwrap(),
+                    ))
                 } else {
-                    panic!(); // can't add a string and a number
+                    Err(RuntimeError::NumberStringAddition(
+                        0,
+                        "".to_string(),
+                        "can only add variables of the same type".to_string(),
+                    ))
                 }
             }
 
-            TokenType::Slash => Object::Number(left.to_num().unwrap() / right.to_num().unwrap()),
-            TokenType::Star => Object::Number(left.to_num().unwrap() * right.to_num().unwrap()),
+            TokenType::Slash => {
+                Self::check_num_operands(&left, &right, operator)?;
+                Ok(Object::Number(
+                    left.to_num().unwrap() / right.to_num().unwrap(),
+                ))
+            }
+            TokenType::Star => {
+                Self::check_num_operands(&left, &right, operator)?;
+                Ok(Object::Number(
+                    left.to_num().unwrap() * right.to_num().unwrap(),
+                ))
+            }
 
-            _ => Object::None,
+            _ => Ok(Object::None),
         }
     }
 }
