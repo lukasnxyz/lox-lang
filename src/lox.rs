@@ -1,27 +1,34 @@
 use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser};
 use std::{fs, io, io::Write};
 
-pub struct Lox {
-    had_error: bool,
-}
+pub struct Lox;
 
 impl Lox {
     pub fn new() -> Self {
-        Self { had_error: false }
+        Self {}
     }
 
     fn run(source: &str) -> Result<(), LoxError> {
         let mut lexer = Lexer::new(source);
-        let tokens = lexer.lex_tokens().unwrap();
+        let tokens = match lexer.lex_tokens() {
+            Ok(tokens) => tokens,
+            Err(e) => {
+                LoxError::report(&LoxError::LexError(e.clone()));
+                return Err(LoxError::LexError(e));
+            }
+        };
 
         let mut parser = Parser::new(tokens);
-        let expression = parser.parse().unwrap();
+        let statements = match parser.parse() {
+            Ok(statements) => statements,
+            Err(e) => {
+                LoxError::report(&LoxError::ParseError(e.clone()));
+                return Err(LoxError::ParseError(e));
+            }
+        };
 
         let interpreter = Interpreter {};
-        let val = expression.accept(&interpreter).unwrap();
-
-        println!("{}", val);
-        //println!("{}", expression);
+        interpreter.interpret(statements);
 
         Ok(())
     }
@@ -29,9 +36,6 @@ impl Lox {
     pub fn run_file(&self, path: &str) -> Result<(), LoxError> {
         let source = fs::read_to_string(path)?;
         Self::run(&source)?;
-        if self.had_error {
-            return Err(LoxError::Error);
-        }
         Ok(())
     }
 
@@ -41,14 +45,16 @@ impl Lox {
     pub fn run_prompt(&mut self) -> Result<(), LoxError> {
         loop {
             let mut input = String::new();
-            print!(">> ");
+            print!(">>> ");
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut input)?;
             if input.trim().is_empty() {
                 continue;
             }
-            Self::run(&input)?;
-            self.had_error = false;
+            match Self::run(&input) {
+                Ok(_) => {}
+                Err(_) => continue,
+            }
         }
     }
 }

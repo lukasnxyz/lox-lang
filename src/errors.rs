@@ -37,7 +37,7 @@ impl LoxError {
 }
 
 // line, lexeme, msg
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LexError {
     IncompleteString(usize, String, String),
     UnknownChar(usize, String, String),
@@ -80,10 +80,11 @@ impl fmt::Display for LexError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParseError {
     InvalidExpression(usize, String, String),
     EndOfExpression(String),
+    Error(String),
 }
 
 impl fmt::Display for ParseError {
@@ -105,6 +106,16 @@ impl fmt::Display for ParseError {
                     "{}: {}\n{}[Error]: {}",
                     red_text!("error"),
                     "ParseError::EndOfExpression",
+                    error_indent!(),
+                    msg
+                )
+            }
+            ParseError::Error(msg) => {
+                write!(
+                    f,
+                    "{}: {}\n{}[Error]: {}",
+                    red_text!("error"),
+                    "ParseError::Error",
                     error_indent!(),
                     msg
                 )

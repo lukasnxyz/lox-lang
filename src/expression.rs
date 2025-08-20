@@ -1,6 +1,25 @@
 use crate::token::{Object, Token};
 use std::fmt;
 
+struct AstPrinter;
+impl AstPrinter {
+    fn print(&self, expr: &Expr) -> String {
+        expr.accept(self)
+    }
+
+    fn parenthesize(&self, name: &str, exprs: &[&Expr]) -> String {
+        let mut builder = String::new();
+        builder.push('(');
+        builder.push_str(name);
+        for expr in exprs {
+            builder.push(' ');
+            builder.push_str(&expr.accept(self));
+        }
+        builder.push(')');
+        builder
+    }
+}
+
 // TODO: ideally make this a macro so I can dynamically just define the grammer in a string and
 //  have it expand to this
 pub enum Expr {
@@ -70,25 +89,6 @@ pub trait ExprVisitor<T> {
     fn visit_this_expr(&self, keyword: &Token) -> T;
     fn visit_variable_expr(&self, name: &Token) -> T;
     */
-}
-
-struct AstPrinter;
-impl AstPrinter {
-    fn print(&self, expr: &Expr) -> String {
-        expr.accept(self)
-    }
-
-    fn parenthesize(&self, name: &str, exprs: &[&Expr]) -> String {
-        let mut builder = String::new();
-        builder.push('(');
-        builder.push_str(name);
-        for expr in exprs {
-            builder.push(' ');
-            builder.push_str(&expr.accept(self));
-        }
-        builder.push(')');
-        builder
-    }
 }
 
 impl ExprVisitor<String> for AstPrinter {

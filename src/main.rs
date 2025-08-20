@@ -9,6 +9,7 @@ mod lox;
 mod macros;
 mod parser;
 mod token;
+mod stmt;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

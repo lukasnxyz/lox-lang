@@ -1,12 +1,22 @@
 use crate::{
-    errors::RuntimeError,
+    errors::{LoxError, RuntimeError},
     expression::{Expr, ExprVisitor},
+    stmt::{Stmt, StmtVisitor},
     token::{Object, Token, TokenType},
 };
 
-pub struct Interpreter {}
+pub struct Interpreter;
 
 impl Interpreter {
+    pub fn interpret(&self, statements: Vec<Stmt>) {
+        for stmt in statements {
+            match stmt.accept(self) {
+                Ok(_) => {}
+                Err(e) => LoxError::report(&LoxError::RuntimeError(e)),
+            }
+        }
+    }
+
     fn check_num_operand(operand: &Object, operator: &Token) -> Result<(), RuntimeError> {
         match operand {
             Object::Number(_) => Ok(()),
@@ -113,4 +123,62 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
             _ => Ok(Object::None),
         }
     }
+}
+
+impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
+    fn visit_expression_stmt(&self, expression: &Expr) -> Result<(), RuntimeError> {
+        expression.accept(self)?;
+        Ok(())
+    }
+
+    fn visit_print_stmt(&self, expression: &Expr) -> Result<(), RuntimeError> {
+        let value = expression.accept(self)?;
+        println!("{}", value);
+        Ok(())
+    }
+
+    /*
+    fn visit_block_stmt(&self, statements: &Vec<Stmt>) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_class_stmt(
+        &self,
+        name: &Token,
+        superclass: &Expr,
+        methods: &Vec<Stmt>,
+    ) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_function_stmt(
+        &self,
+        name: &Token,
+        params: &Vec<Token>,
+        body: &Vec<Stmt>,
+    ) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_if_stmt(
+        &self,
+        condition: &Expr,
+        then_branch: &Stmt,
+        else_branch: &Stmt,
+    ) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_return_stmt(&self, keyword: &Token, value: &Expr) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_var_stmt(&self, name: &Token, initializer: &Expr) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+
+    fn visit_while_stmt(&self, condition: &Expr, body: &Stmt) -> Result<(), RuntimeError> {
+        Ok(())
+    }
+    */
 }
