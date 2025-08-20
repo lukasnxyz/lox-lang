@@ -8,6 +8,7 @@ pub enum LoxError {
     LexError(LexError),
     ParseError(ParseError),
     RuntimeError(RuntimeError),
+    EnvError(EnvError),
 }
 
 impl fmt::Display for LoxError {
@@ -18,6 +19,7 @@ impl fmt::Display for LoxError {
             LoxError::LexError(e) => write!(f, "{}", e),
             LoxError::ParseError(e) => write!(f, "{}", e),
             LoxError::RuntimeError(e) => write!(f, "{}", e),
+            LoxError::EnvError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -148,6 +150,28 @@ impl fmt::Display for RuntimeError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "RuntimeError::NumberStringAddition",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum EnvError {
+    ValueNotFound(usize, String, String),
+}
+
+impl fmt::Display for EnvError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            EnvError::ValueNotFound(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "EnvError::ValueNotFound",
                 error_indent!(),
                 line,
                 lexeme,

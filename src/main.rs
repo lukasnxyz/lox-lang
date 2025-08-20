@@ -1,6 +1,7 @@
 use crate::lox::Lox;
 use std::env;
 
+mod environment;
 mod errors;
 mod expression;
 mod interpreter;
@@ -8,8 +9,8 @@ mod lexer;
 mod lox;
 mod macros;
 mod parser;
-mod token;
 mod stmt;
+mod token;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

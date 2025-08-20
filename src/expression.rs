@@ -78,6 +78,7 @@ pub trait ExprVisitor<T> {
     fn visit_grouping_expr(&self, expression: &Expr) -> T;
     fn visit_literal_expr(&self, value: &Object) -> T;
     fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> T;
+    fn visit_variable_expr(&self, name: &Token) -> T;
 
     /*
     fn visit_assign_expr(&self, name: &Token, value: &Expr) -> T;
@@ -87,7 +88,6 @@ pub trait ExprVisitor<T> {
     fn visit_set_expr(&self, object: &Expr, name: &Token, value: &Expr) -> T;
     fn visit_super_expr(&self, keyword: &Token, method: &Token) -> T;
     fn visit_this_expr(&self, keyword: &Token) -> T;
-    fn visit_variable_expr(&self, name: &Token) -> T;
     */
 }
 
@@ -111,6 +111,10 @@ impl ExprVisitor<String> for AstPrinter {
 
     fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> String {
         self.parenthesize(&operator.lexeme, &[right])
+    }
+
+    fn visit_variable_expr(&self, name: &Token) -> String {
+        name.lexeme.clone()
     }
 
     /*
@@ -151,10 +155,6 @@ impl ExprVisitor<String> for AstPrinter {
 
     fn visit_this_expr(&self, keyword: &Token) -> String {
         "this".to_string()
-    }
-
-    fn visit_variable_expr(&self, name: &Token) -> String {
-        name.lexeme.clone()
     }
     */
 }

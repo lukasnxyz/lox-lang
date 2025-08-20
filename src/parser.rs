@@ -23,10 +23,11 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.peek().is_eof() {
-            match self.statement() {
+            match self.declaration() {
                 Ok(val) => statements.push(val),
                 Err(e) => {
                     self.had_error = true;
+                    self.synchronize();
                     LoxError::report(&LoxError::ParseError(e));
                 }
             }
@@ -46,6 +47,14 @@ impl Parser {
         self.equality()
     }
 
+    fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        if self.amatch(&[TokenType::Var]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        }
+    }
+
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.amatch(&[TokenType::Print]) {
             self.print_stmt()
@@ -58,6 +67,26 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "expect ';' after value")?;
         Ok(Stmt::Print { expression: value })
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(TokenType::Identifier, "expect variable name")?;
+
+        let mut initializer = Expr::Literal {
+            value: Object::None,
+        };
+        if self.amatch(&[TokenType::Equal]) {
+            initializer = self.expression()?;
+        }
+
+        self.consume(
+            TokenType::Semicolon,
+            "expect ';' after variable declaration",
+        )?;
+        Ok(Stmt::Var {
+            name: name,
+            initializer: Some(initializer),
+        })
     }
 
     fn expr_stmt(&mut self) -> Result<Stmt, ParseError> {
@@ -214,6 +243,10 @@ impl Parser {
             Ok(Expr::Grouping {
                 expression: Box::new(expr),
             })
+        } else if self.amatch(&[TokenType::Identifier]) {
+            Ok(Expr::Variable {
+                name: self.previous(),
+            })
         } else {
             let err = LoxError::ParseError(ParseError::InvalidExpression(
                 self.peek().line,
@@ -222,6 +255,8 @@ impl Parser {
             ));
             LoxError::report(&err);
             self.synchronize();
+
+            // TODO: possibly remove this all here as its handled in the parse func now
 
             // or err here
             Ok(Expr::Literal {

@@ -27,7 +27,7 @@ impl Lox {
             }
         };
 
-        let interpreter = Interpreter {};
+        let mut interpreter = Interpreter::new();
         interpreter.interpret(statements);
 
         Ok(())

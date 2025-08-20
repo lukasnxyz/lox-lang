@@ -1,14 +1,23 @@
 use crate::{
+    environment::Env,
     errors::{LoxError, RuntimeError},
     expression::{Expr, ExprVisitor},
     stmt::{Stmt, StmtVisitor},
     token::{Object, Token, TokenType},
 };
 
-pub struct Interpreter;
+pub struct Interpreter {
+    pub env: Env,
+}
 
 impl Interpreter {
-    pub fn interpret(&self, statements: Vec<Stmt>) {
+    pub fn new() -> Self {
+        Self {
+            env: Env::new(),
+        }
+    }
+
+    pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for stmt in statements {
             match stmt.accept(self) {
                 Ok(_) => {}
@@ -123,6 +132,11 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
             _ => Ok(Object::None),
         }
     }
+
+    // TODO: not correct probably
+    fn visit_variable_expr(&self, name: &Token) -> Result<Object, RuntimeError> {
+        Ok(name.literal.clone())
+    }
 }
 
 impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
@@ -134,6 +148,21 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     fn visit_print_stmt(&self, expression: &Expr) -> Result<(), RuntimeError> {
         let value = expression.accept(self)?;
         println!("{}", value);
+        Ok(())
+    }
+
+    fn visit_var_stmt(
+        &mut self,
+        name: &Token,
+        initializer: &Option<Expr>,
+    ) -> Result<(), RuntimeError> {
+        let mut value = Object::None;
+        match initializer {
+            Some(val) => value = val.accept(self)?,
+            None => {}
+        }
+
+        self.env.define(&name.lexeme, &value);
         Ok(())
     }
 
@@ -170,10 +199,6 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     }
 
     fn visit_return_stmt(&self, keyword: &Token, value: &Expr) -> Result<(), RuntimeError> {
-        Ok(())
-    }
-
-    fn visit_var_stmt(&self, name: &Token, initializer: &Expr) -> Result<(), RuntimeError> {
         Ok(())
     }
 
