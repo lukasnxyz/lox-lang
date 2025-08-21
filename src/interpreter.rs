@@ -1,9 +1,7 @@
 use crate::{
     environment::Env,
     errors::{LoxError, RuntimeError},
-    expression::{Expr, ExprVisitor},
-    stmt::{Stmt, StmtVisitor},
-    token::{Object, Token, TokenType},
+    types::{Expr, ExprVisitor, Object, Stmt, StmtVisitor, Token, TokenType},
 };
 
 pub struct Interpreter {

@@ -1,5 +1,168 @@
-use crate::token::{Object, Token};
 use std::fmt;
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum TokenType {
+    // single-character tokens
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
+    Star,
+
+    // one or two character tokens
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+
+    // literals
+    Identifier,
+    LoxString,
+    Number,
+
+    // keywords
+    And,
+    Class,
+    Else,
+    False,
+    Fun,
+    For,
+    If,
+    r#None,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
+    While,
+
+    Eof,
+}
+
+#[derive(Clone, Debug, PartialOrd)]
+pub enum Object {
+    r#String(String),
+    Number(f64),
+    Bool(bool),
+    None,
+}
+
+// TODO: impl PartialOrd for Object custom to define the exact behaviour
+
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Object::String(s) => s.to_string(),
+                Object::Number(n) => n.to_string(),
+                Object::Bool(b) => b.to_string(),
+                Object::None => "none".to_string(),
+            }
+        )
+    }
+}
+
+/// isEqual()
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Object::Number(a), Object::Number(b)) => a == b,
+            (Object::String(a), Object::String(b)) => a == b,
+            (Object::Bool(a), Object::Bool(b)) => a == b,
+            (Object::None, Object::None) => true,
+            (Object::None, _) => false,
+            _ => false,
+        }
+    }
+}
+
+impl Object {
+    pub fn to_str(&self) -> Option<String> {
+        match self {
+            Object::String(val) => Some(val.to_string()),
+            _ => None,
+        }
+    }
+
+    pub fn is_str(&self) -> bool {
+        match self {
+            Object::String(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_num(&self) -> Option<f64> {
+        match self {
+            Object::Number(val) => Some(*val),
+            _ => None,
+        }
+    }
+
+    pub fn is_num(&self) -> bool {
+        match self {
+            Object::Number(_) => true,
+            _ => false,
+        }
+    }
+
+    /// isTruthy() returns false for false and nil and true for everything else
+    pub fn to_bool(&self) -> bool {
+        match self {
+            Object::Bool(val) => *val,
+            Object::None => false,
+            _ => true,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Token {
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub literal: Object,
+    pub line: usize,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?} '{}' ", self.token_type, self.lexeme)?;
+        match &self.literal {
+            Object::String(s) => write!(f, "{}", s),
+            Object::Number(n) => write!(f, "{}", n),
+            Object::Bool(b) => write!(f, "{}", b),
+            Object::None => write!(f, "None"),
+        }
+    }
+}
+
+impl Token {
+    pub fn new(token_type: TokenType, lexeme: &str, literal: Object, line: usize) -> Self {
+        Self {
+            token_type,
+            lexeme: lexeme.to_owned(),
+            literal,
+            line,
+        }
+    }
+
+    pub fn is_eof(&self) -> bool {
+        self.token_type == TokenType::Eof
+    }
+}
 
 struct AstPrinter;
 impl AstPrinter {
@@ -199,5 +362,81 @@ impl Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", AstPrinter.print(self))
+    }
+}
+
+#[derive(Clone)]
+pub enum Stmt {
+    Block {
+        statements: Vec<Stmt>,
+    },
+    Class {
+        name: Token,
+        superclass: Expr,
+        methods: Vec<Stmt>, // have to be Statement::Function
+    },
+    Expression {
+        expression: Expr,
+    },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+    },
+    If {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Box<Stmt>,
+    },
+    Print {
+        expression: Expr,
+    },
+    Return {
+        keyword: Token,
+        value: Expr,
+    },
+    Var {
+        name: Token,
+        initializer: Option<Expr>,
+    },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
+}
+
+pub trait StmtVisitor<T> {
+    fn visit_expression_stmt(&mut self, expression: &Expr) -> T;
+    fn visit_print_stmt(&mut self, expression: &Expr) -> T;
+    fn visit_var_stmt(&mut self, name: &Token, initializer: &Option<Expr>) -> T;
+    fn visit_block_stmt(&mut self, statements: &Vec<Stmt>) -> T;
+
+    /*
+    fn visit_class_stmt(&mut self, name: &Token, superclass: &Expr, methods: &Vec<Stmt>) -> T;
+    fn visit_function_stmt(&mut self, name: &Token, params: &Vec<Token>, body: &Vec<Stmt>) -> T;
+    fn visit_if_stmt(&mut self, condition: &Expr, then_branch: &Stmt, else_branch: &Stmt) -> T;
+    fn visit_return_stmt(&mut self, keyword: &Token, value: &Expr) -> T;
+    fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> T;
+    */
+}
+
+impl Stmt {
+    pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
+        match self {
+            Stmt::Expression { expression } => visitor.visit_expression_stmt(expression),
+            Stmt::Print { expression } => visitor.visit_print_stmt(expression),
+            Stmt::Var { name, initializer } => visitor.visit_var_stmt(name, initializer),
+            Stmt::Block { statements } => visitor.visit_block_stmt(statements),
+            _ => visitor.visit_expression_stmt(&Expr::Literal {
+                value: Object::None,
+            }),
+            /*
+            Stmt::Class { name, superclass, methods } => {}
+            Stmt::Function { name, params, body } =>
+            Stmt::If { condition, then_branch, else_branch } => {}
+            Stmt::Return { keyword, value } =>
+            Stmt::While { condition, body } => {}
+            */
+        }
     }
 }

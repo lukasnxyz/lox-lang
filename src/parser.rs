@@ -1,8 +1,6 @@
 use crate::{
     errors::{LoxError, ParseError},
-    expression::Expr,
-    stmt::Stmt,
-    token::{Object, Token, TokenType},
+    types::{Expr, Object, Stmt, Token, TokenType},
 };
 
 pub struct Parser {

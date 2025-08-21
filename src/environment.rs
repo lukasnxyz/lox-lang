@@ -1,6 +1,6 @@
 use crate::{
     errors::EnvError,
-    token::{Object, Token},
+    types::{Object, Token},
 };
 use std::collections::HashMap;
 
@@ -30,9 +30,9 @@ impl Env {
         match self.enclosing.as_ref() {
             Some(enclosing) => enclosing.get(name),
             None => Err(EnvError::ValueNotFound(
-                    name.line,
-                    name.lexeme.clone(),
-                    format!("no value found for var {}", name.lexeme.clone()),
+                name.line,
+                name.lexeme.clone(),
+                format!("no value found for var {}", name.lexeme.clone()),
             )),
         }
     }

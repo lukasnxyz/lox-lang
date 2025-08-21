@@ -1,5 +1,9 @@
 use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser};
-use std::{fs, io::{self, Write}, path::{Path, PathBuf}};
+use std::{
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
 pub struct Lox;
 

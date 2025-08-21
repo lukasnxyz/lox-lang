@@ -3,14 +3,12 @@ use std::env;
 
 mod environment;
 mod errors;
-mod expression;
 mod interpreter;
 mod lexer;
 mod lox;
 mod macros;
 mod parser;
-mod stmt;
-mod token;
+mod types;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

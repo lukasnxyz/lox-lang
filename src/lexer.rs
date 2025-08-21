@@ -1,6 +1,6 @@
 use crate::{
     errors::LexError,
-    token::{Object, Token, TokenType},
+    types::{Object, Token, TokenType},
 };
 use std::collections::HashMap;
 
