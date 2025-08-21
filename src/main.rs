@@ -21,7 +21,7 @@ fn main() {
         println!("usage: lox [script], or lox (for repl)");
         return;
     } else if args.len() == 2 {
-        lox.run_file(&args[0]).unwrap();
+        lox.run_file(&args[1]).unwrap();
     } else {
         lox.run_prompt().unwrap();
     }

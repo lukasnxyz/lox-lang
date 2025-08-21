@@ -1,3 +1,22 @@
-// var lang = "lox";
-// var num = 0.69;
-3 + 5 * 7 - 8 / 9 + 4 * 2
+var eq = 3 + 5 * 7 - 8 / 9 + 4 * 2;
+print eq;
+
+var a = "global a";
+var b = "global b";
+var c = "global c";
+{
+  var a = "outer a";
+  var b = "outer b";
+  {
+    var a = "inner a";
+    print a;
+    print b;
+    print c;
+  }
+  print a;
+  print b;
+  print c;
+}
+print a;
+print b;
+print c;

@@ -1,5 +1,5 @@
 use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser};
-use std::{fs, io, io::Write};
+use std::{fs, io::{self, Write}, path::{Path, PathBuf}};
 
 pub struct Lox;
 
@@ -34,7 +34,7 @@ impl Lox {
     }
 
     pub fn run_file(&self, path: &str) -> Result<(), LoxError> {
-        let source = fs::read_to_string(path)?;
+        let source = fs::read_to_string(Path::new(path))?;
         Self::run(&source)?;
         Ok(())
     }

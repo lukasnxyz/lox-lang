@@ -44,7 +44,7 @@ impl Parser {
 
     /// expression     → equality ;
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
     }
 
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
@@ -58,6 +58,10 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.amatch(&[TokenType::Print]) {
             self.print_stmt()
+        } else if self.amatch(&[TokenType::LeftBrace]) {
+            Ok(Stmt::Block {
+                statements: self.block()?,
+            })
         } else {
             self.expr_stmt()
         }
@@ -93,6 +97,40 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "expect ';' after value")?;
         Ok(Stmt::Expression { expression: expr })
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = vec![];
+        while !self.check(&TokenType::RightBrace) {
+            statements.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace, "expect '}' after block")?;
+
+        Ok(statements)
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality()?;
+
+        if !self.amatch(&[TokenType::Equal]) {
+            return Ok(expr);
+        }
+
+        let equals = self.previous();
+        let value = self.assignment()?;
+
+        match expr {
+            Expr::Variable { name } => Ok(Expr::Assign {
+                name,
+                value: Box::new(value),
+            }),
+            _ => Err(ParseError::InvalidAssignment(
+                equals.line,
+                equals.lexeme,
+                "invalid assignment target".to_string(),
+            )),
+        }
     }
 
     /// equality       → comparison ( ( "!=" | "==" ) comparison )* ;

@@ -3,11 +3,11 @@ use std::fmt;
 
 struct AstPrinter;
 impl AstPrinter {
-    fn print(&self, expr: &Expr) -> String {
+    fn print(&mut self, expr: &Expr) -> String {
         expr.accept(self)
     }
 
-    fn parenthesize(&self, name: &str, exprs: &[&Expr]) -> String {
+    fn parenthesize(&mut self, name: &str, exprs: &[&Expr]) -> String {
         let mut builder = String::new();
         builder.push('(');
         builder.push_str(name);
@@ -22,6 +22,7 @@ impl AstPrinter {
 
 // TODO: ideally make this a macro so I can dynamically just define the grammer in a string and
 //  have it expand to this
+#[derive(Clone)]
 pub enum Expr {
     Assign {
         name: Token,
@@ -74,14 +75,14 @@ pub enum Expr {
 }
 
 pub trait ExprVisitor<T> {
-    fn visit_binary_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> T;
-    fn visit_grouping_expr(&self, expression: &Expr) -> T;
-    fn visit_literal_expr(&self, value: &Object) -> T;
-    fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> T;
-    fn visit_variable_expr(&self, name: &Token) -> T;
+    fn visit_binary_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
+    fn visit_grouping_expr(&mut self, expression: &Expr) -> T;
+    fn visit_literal_expr(&mut self, value: &Object) -> T;
+    fn visit_unary_expr(&mut self, operator: &Token, right: &Expr) -> T;
+    fn visit_variable_expr(&mut self, name: &Token) -> T;
+    fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> T;
 
     /*
-    fn visit_assign_expr(&self, name: &Token, value: &Expr) -> T;
     fn visit_call_expr(&self, callee: &Expr, arguments: &[Expr]) -> T;
     fn visit_get_expr(&self, object: &Expr, name: &Token) -> T;
     fn visit_logical_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> T;
@@ -92,15 +93,15 @@ pub trait ExprVisitor<T> {
 }
 
 impl ExprVisitor<String> for AstPrinter {
-    fn visit_binary_expr(&self, left: &Expr, operator: &Token, right: &Expr) -> String {
+    fn visit_binary_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> String {
         self.parenthesize(&operator.lexeme, &[left, right])
     }
 
-    fn visit_grouping_expr(&self, expression: &Expr) -> String {
+    fn visit_grouping_expr(&mut self, expression: &Expr) -> String {
         self.parenthesize("group", &[expression])
     }
 
-    fn visit_literal_expr(&self, value: &Object) -> String {
+    fn visit_literal_expr(&mut self, value: &Object) -> String {
         match value {
             Object::String(s) => s.to_string(),
             Object::Number(n) => n.to_string(),
@@ -109,19 +110,19 @@ impl ExprVisitor<String> for AstPrinter {
         }
     }
 
-    fn visit_unary_expr(&self, operator: &Token, right: &Expr) -> String {
+    fn visit_unary_expr(&mut self, operator: &Token, right: &Expr) -> String {
         self.parenthesize(&operator.lexeme, &[right])
     }
 
-    fn visit_variable_expr(&self, name: &Token) -> String {
+    fn visit_variable_expr(&mut self, name: &Token) -> String {
         name.lexeme.clone()
     }
 
-    /*
-    fn visit_assign_expr(&self, name: &Token, value: &Expr) -> String {
+    fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> String {
         format!("(= {} {})", name.lexeme, value.accept(self))
     }
 
+    /*
     fn visit_call_expr(&self, callee: &Expr, arguments: &[Expr]) -> String {
         let mut result = format!("(call {}", callee.accept(self));
         for arg in arguments {
@@ -160,7 +161,7 @@ impl ExprVisitor<String> for AstPrinter {
 }
 
 impl Expr {
-    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
         match self {
             Expr::Binary {
                 left,
@@ -170,9 +171,10 @@ impl Expr {
             Expr::Grouping { expression } => visitor.visit_grouping_expr(expression),
             Expr::Literal { value } => visitor.visit_literal_expr(value),
             Expr::Unary { operator, right } => visitor.visit_unary_expr(operator, right),
+            Expr::Variable { name } => visitor.visit_variable_expr(name),
+            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
             _ => visitor.visit_literal_expr(&Object::None),
             /*
-            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
             Expr::Call {
                 callee, arguments, ..
             } => visitor.visit_call_expr(callee, arguments),
@@ -189,7 +191,6 @@ impl Expr {
             } => visitor.visit_set_expr(object, name, value),
             Expr::Super { keyword, method } => visitor.visit_super_expr(keyword, method),
             Expr::This { keyword } => visitor.visit_this_expr(keyword),
-            Expr::Variable { name } => visitor.visit_variable_expr(name),
             */
         }
     }

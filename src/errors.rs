@@ -85,6 +85,7 @@ impl fmt::Display for LexError {
 #[derive(Debug, Clone)]
 pub enum ParseError {
     InvalidExpression(usize, String, String),
+    InvalidAssignment(usize, String, String),
     EndOfExpression(String),
     Error(String),
 }
@@ -97,6 +98,16 @@ impl fmt::Display for ParseError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "ParseError::InvalidExpression",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+            ParseError::InvalidAssignment(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "ParseError::InvalidAssignment",
                 error_indent!(),
                 line,
                 lexeme,
@@ -130,6 +141,7 @@ impl fmt::Display for ParseError {
 pub enum RuntimeError {
     InvalidType(usize, String, String),
     NumberStringAddition(usize, String, String),
+    ValueNotFound(usize, String, String),
 }
 
 impl fmt::Display for RuntimeError {
@@ -150,6 +162,16 @@ impl fmt::Display for RuntimeError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "RuntimeError::NumberStringAddition",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+            RuntimeError::ValueNotFound(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "RuntimeError::UnknownVariable",
                 error_indent!(),
                 line,
                 lexeme,
