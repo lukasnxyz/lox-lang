@@ -13,9 +13,17 @@ impl Interpreter {
         Self { env: Env::new() }
     }
 
-    pub fn interpret(&mut self, statements: Vec<Stmt>) {
+    // TODO: an expression alone in a lox file should cause an error or at least a warning
+    pub fn interpret(&mut self, statements: Vec<Stmt>, repl: bool) {
         for stmt in statements {
             match stmt.accept(self) {
+                Ok(_) if repl => match stmt {
+                    Stmt::Expression { expression } => match expression.accept(self) {
+                        Ok(val) => println!("{}", val),
+                        Err(e) => LoxError::report(&LoxError::RuntimeError(e)),
+                    },
+                    _ => {}
+                },
                 Ok(_) => {}
                 Err(e) => LoxError::report(&LoxError::RuntimeError(e)),
             }
@@ -143,7 +151,14 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
 
     fn visit_variable_expr(&mut self, name: &Token) -> Result<Object, RuntimeError> {
         match self.env.get(name) {
-            Ok(val) => Ok(val),
+            Ok(val) => match val {
+                Object::None => Err(RuntimeError::VariableUninitialized(
+                    name.line,
+                    name.lexeme.clone(),
+                    "variable uninitialized".to_string(),
+                )),
+                _ => Ok(val),
+            },
             Err(e) => Err(RuntimeError::ValueNotFound(
                 name.line,
                 name.lexeme.clone(),
@@ -187,6 +202,8 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
             Some(val) => value = val.accept(self)?,
             None => {}
         }
+
+        // TODO: good place to put a warning that var is uninited or something
 
         self.env.define(&name.lexeme, &value);
         Ok(())

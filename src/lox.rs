@@ -2,7 +2,7 @@ use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Pa
 use std::{
     fs,
     io::{self, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 pub struct Lox;
@@ -12,7 +12,7 @@ impl Lox {
         Self {}
     }
 
-    fn run(source: &str) -> Result<(), LoxError> {
+    fn run(source: &str, repl: bool) -> Result<(), LoxError> {
         let mut lexer = Lexer::new(source);
         let tokens = match lexer.lex_tokens() {
             Ok(tokens) => tokens,
@@ -32,14 +32,14 @@ impl Lox {
         };
 
         let mut interpreter = Interpreter::new();
-        interpreter.interpret(statements);
+        interpreter.interpret(statements, repl);
 
         Ok(())
     }
 
     pub fn run_file(&self, path: &str) -> Result<(), LoxError> {
         let source = fs::read_to_string(Path::new(path))?;
-        Self::run(&source)?;
+        Self::run(&source, false)?;
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl Lox {
             if input.trim().is_empty() {
                 continue;
             }
-            match Self::run(&input) {
+            match Self::run(&input, true) {
                 Ok(_) => {}
                 Err(_) => continue,
             }

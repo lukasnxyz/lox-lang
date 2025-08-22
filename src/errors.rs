@@ -142,6 +142,7 @@ pub enum RuntimeError {
     InvalidType(usize, String, String),
     NumberStringAddition(usize, String, String),
     ValueNotFound(usize, String, String),
+    VariableUninitialized(usize, String, String),
 }
 
 impl fmt::Display for RuntimeError {
@@ -172,6 +173,16 @@ impl fmt::Display for RuntimeError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "RuntimeError::UnknownVariable",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+            RuntimeError::VariableUninitialized(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "RuntimeError::VariableUninitialized",
                 error_indent!(),
                 line,
                 lexeme,
