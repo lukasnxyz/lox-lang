@@ -4,13 +4,18 @@ use crate::{
     types::{Expr, ExprVisitor, Object, Stmt, StmtVisitor, Token, TokenType},
 };
 
+use std::{
+    rc::Rc,
+    cell::RefCell,
+};
+
 pub struct Interpreter {
-    pub env: Env,
+    pub env: Rc<RefCell<Env>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self { env: Env::new() }
+        Self { env: Rc::new(RefCell::new(Env::new(None))) }
     }
 
     // TODO: an expression alone in a lox file should cause an error or at least a warning
@@ -57,15 +62,19 @@ impl Interpreter {
     }
 
     // TODO: are all of these clones correct?
-    fn execute_block(&mut self, statements: Vec<Stmt>, env: &Env) -> Result<(), RuntimeError> {
+    fn execute_block(&mut self, statements: &[Stmt], env: Rc<RefCell<Env>>) -> Result<(), RuntimeError> {
         let previous = self.env.clone();
-        self.env = env.clone();
-        for stmt in statements {
-            stmt.accept(self)?;
-        }
-        self.env = previous;
+        self.env = env;
 
-        Ok(())
+        let result = (|| {
+            for stmt in statements {
+                stmt.accept(self)?;
+            }
+            Ok(())
+        })();
+
+        self.env = previous;
+        result
     }
 }
 
@@ -149,7 +158,16 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&mut self, name: &Token) -> Result<Object, RuntimeError> {
+    fn visit_var_expr(&mut self, name: &Token) -> Result<Object, RuntimeError> {
+        self.env.borrow().get(name).or_else(|_| {
+            Err(RuntimeError::ValueNotFound(
+                    name.line,
+                    name.lexeme.to_string(),
+                    "poop".to_string(),
+            ))
+        })
+
+        /*
         match self.env.get(name) {
             Ok(val) => match val {
                 Object::None => Err(RuntimeError::VariableUninitialized(
@@ -165,11 +183,12 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
                 e.to_string(),
             )),
         }
+        */
     }
 
     fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> Result<Object, RuntimeError> {
         let value = value.accept(self)?;
-        match self.env.assign(&name, &value) {
+        match self.env.borrow_mut().assign(&name, &value) {
             Ok(_) => Ok(value),
             Err(_) => Err(RuntimeError::ValueNotFound(
                 name.line,
@@ -177,6 +196,30 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
                 "undefined variable".to_string(),
             )),
         }
+    }
+
+    fn visit_logical_expr(
+        &mut self,
+        left: &Expr,
+        operator: &Token,
+        right: &Expr,
+    ) -> Result<Object, RuntimeError> {
+        let left = left.accept(self)?;
+
+        match operator.token_type {
+            TokenType::Or => {
+                if left.to_bool() {
+                    return Ok(left);
+                }
+            }
+            _ => {
+                if !left.to_bool() {
+                    return Ok(left);
+                }
+            }
+        }
+
+        right.accept(self)
     }
 }
 
@@ -205,19 +248,41 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
 
         // TODO: good place to put a warning that var is uninited or something
 
-        self.env.define(&name.lexeme, &value);
+        self.env.borrow_mut().define(&name.lexeme, &value);
         Ok(())
     }
 
-    fn visit_block_stmt(&mut self, statements: &Vec<Stmt>) -> Result<(), RuntimeError> {
-        let env = self.env.clone();
-        self.execute_block(statements.to_vec(), &env)?;
+    fn visit_block_stmt(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+        let new_env = Rc::new(RefCell::new(self.env.borrow_mut().clone()));
+        self.execute_block(statements, new_env)
+    }
+
+    fn visit_if_stmt(
+        &mut self,
+        condition: &Expr,
+        then_branch: &Stmt,
+        else_branch: &Option<Stmt>,
+    ) -> Result<(), RuntimeError> {
+        if condition.accept(self)?.to_bool() {
+            then_branch.accept(self)?;
+        } else if let Some(e_branch) = else_branch {
+            e_branch.accept(self)?;
+        }
+
+        Ok(())
+    }
+
+    fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> Result<(), RuntimeError> {
+        while condition.accept(self)?.to_bool() {
+            body.accept(self)?;
+        }
+
         Ok(())
     }
 
     /*
     fn visit_class_stmt(
-        &self,
+        &mut self,
         name: &Token,
         superclass: &Expr,
         methods: &Vec<Stmt>,
@@ -226,7 +291,7 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     }
 
     fn visit_function_stmt(
-        &self,
+        &mut self,
         name: &Token,
         params: &Vec<Token>,
         body: &Vec<Stmt>,
@@ -234,20 +299,11 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
         Ok(())
     }
 
-    fn visit_if_stmt(
-        &self,
-        condition: &Expr,
-        then_branch: &Stmt,
-        else_branch: &Stmt,
-    ) -> Result<(), RuntimeError> {
+    fn visit_return_stmt(&mut self, keyword: &Token, value: &Expr) -> Result<(), RuntimeError> {
         Ok(())
     }
 
-    fn visit_return_stmt(&self, keyword: &Token, value: &Expr) -> Result<(), RuntimeError> {
-        Ok(())
-    }
-
-    fn visit_while_stmt(&self, condition: &Expr, body: &Stmt) -> Result<(), RuntimeError> {
+    fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> Result<(), RuntimeError> {
         Ok(())
     }
     */

@@ -1,0 +1,17 @@
+// print the first 10 fibonacci numbers in lox
+{
+    var a = 0;
+    var temp = 0;
+
+    for (var b = 1; a < 10; b = temp + b) {
+        print a;
+        temp = a;
+        a = b;
+    }
+}
+
+//for (var b = 1; a < 10; b = temp + b) {
+//    print a;
+//    temp = a;
+//    a = b;
+//}
