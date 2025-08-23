@@ -100,12 +100,7 @@ impl Parser {
 
         if let Some(inc) = increment {
             body = Stmt::Block {
-                statements: vec![
-                    body,
-                    Stmt::Expression {
-                        expression: inc,
-                    },
-                ],
+                statements: vec![body, Stmt::Expression { expression: inc }],
             };
         }
 

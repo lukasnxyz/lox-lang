@@ -2,11 +2,7 @@ use crate::{
     errors::EnvError,
     types::{Object, Token},
 };
-use std::{
-    collections::HashMap,
-    rc::Rc,
-    cell::RefCell,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, Default)]
 pub struct Env {
@@ -15,10 +11,17 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new(enclosing: Option<Rc<RefCell<Env>>>) -> Self {
+    pub fn new() -> Self {
         Self {
             values: HashMap::new(),
-            enclosing: enclosing,
+            enclosing: None,
+        }
+    }
+
+    pub fn new_enclosing(enclosing: Rc<RefCell<Env>>) -> Self {
+        Self {
+            values: HashMap::new(),
+            enclosing: Some(enclosing),
         }
     }
 
@@ -32,9 +35,9 @@ impl Env {
         }
 
         Err(EnvError::ValueNotFound(
-                name.line,
-                name.lexeme.clone(),
-                format!("no value found for var {}", name.lexeme.clone()),
+            name.line,
+            name.lexeme.clone(),
+            format!("no value found for var {}", name.lexeme.clone()),
         ))
     }
 
@@ -54,9 +57,9 @@ impl Env {
         }
 
         Err(EnvError::ValueNotFound(
-                name.line,
-                name.lexeme.to_string(),
-                "undefined variable".to_string(),
+            name.line,
+            name.lexeme.to_string(),
+            "undefined variable".to_string(),
         ))
     }
 

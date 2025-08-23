@@ -4,10 +4,7 @@ use crate::{
     types::{Expr, ExprVisitor, Object, Stmt, StmtVisitor, Token, TokenType},
 };
 
-use std::{
-    rc::Rc,
-    cell::RefCell,
-};
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Interpreter {
     pub env: Rc<RefCell<Env>>,
@@ -15,7 +12,9 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self { env: Rc::new(RefCell::new(Env::new(None))) }
+        Self {
+            env: Rc::new(RefCell::new(Env::new())),
+        }
     }
 
     // TODO: an expression alone in a lox file should cause an error or at least a warning
@@ -61,19 +60,21 @@ impl Interpreter {
         }
     }
 
-    // TODO: are all of these clones correct?
-    fn execute_block(&mut self, statements: &[Stmt], env: Rc<RefCell<Env>>) -> Result<(), RuntimeError> {
+    fn execute_block(
+        &mut self,
+        statements: &[Stmt],
+        env: Rc<RefCell<Env>>,
+    ) -> Result<(), RuntimeError> {
         let previous = self.env.clone();
-        self.env = env;
-
+        self.env = env.clone();
         let result = (|| {
             for stmt in statements {
                 stmt.accept(self)?;
             }
             Ok(())
         })();
-
         self.env = previous;
+
         result
     }
 }
@@ -159,16 +160,7 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
     }
 
     fn visit_var_expr(&mut self, name: &Token) -> Result<Object, RuntimeError> {
-        self.env.borrow().get(name).or_else(|_| {
-            Err(RuntimeError::ValueNotFound(
-                    name.line,
-                    name.lexeme.to_string(),
-                    "poop".to_string(),
-            ))
-        })
-
-        /*
-        match self.env.get(name) {
+        match self.env.borrow().get(name) {
             Ok(val) => match val {
                 Object::None => Err(RuntimeError::VariableUninitialized(
                     name.line,
@@ -183,7 +175,6 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
                 e.to_string(),
             )),
         }
-        */
     }
 
     fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> Result<Object, RuntimeError> {
@@ -253,8 +244,8 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     }
 
     fn visit_block_stmt(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
-        let new_env = Rc::new(RefCell::new(self.env.borrow_mut().clone()));
-        self.execute_block(statements, new_env)
+        let n_env = Rc::new(RefCell::new(Env::new_enclosing(self.env.clone())));
+        self.execute_block(statements, n_env)
     }
 
     fn visit_if_stmt(
