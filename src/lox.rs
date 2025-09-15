@@ -31,6 +31,8 @@ impl Lox {
             }
         };
 
+        // TODO: can print the statements here but need to implement an AstPrint for it
+
         let mut interpreter = Interpreter::new();
         interpreter.interpret(statements, repl);
 

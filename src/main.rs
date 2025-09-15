@@ -1,6 +1,7 @@
 use crate::lox::Lox;
 use std::env;
 
+mod callable;
 mod environment;
 mod errors;
 mod interpreter;

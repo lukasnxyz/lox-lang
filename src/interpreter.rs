@@ -1,4 +1,5 @@
 use crate::{
+    callable::Callable,
     environment::Env,
     errors::{LoxError, RuntimeError},
     types::{Expr, ExprVisitor, Object, Stmt, StmtVisitor, Token, TokenType},
@@ -212,6 +213,34 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
 
         right.accept(self)
     }
+
+    fn visit_call_expr(
+        &mut self,
+        callee: &Expr,
+        arguments: &[Expr],
+    ) -> Result<Object, RuntimeError> {
+        let callee = callee.accept(self)?;
+
+        let mut ret_arguments = vec![];
+        for arg in arguments {
+            ret_arguments.push(arg);
+        }
+
+        // TODO: check that callee type implement Callable trait
+        // - I think rusts type system handles this without a problem?
+
+        let function = Callable::from_obj(&callee)?;
+        if ret_arguments.len() != function.arity() {
+            Err(RuntimeError::InvalidNumArgs(format!(
+                "expected {} arguments, but got {}",
+                function.arity(),
+                ret_arguments.len()
+            )))
+        }
+
+        Ok(function.call(self, ret_arguments))
+    }
+    // what does this function do?
 }
 
 impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {

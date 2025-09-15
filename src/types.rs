@@ -245,14 +245,50 @@ pub trait ExprVisitor<T> {
     fn visit_var_expr(&mut self, name: &Token) -> T;
     fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> T;
     fn visit_logical_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
+    fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> T;
 
     /*
-    fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> T;
     fn visit_get_expr(&mut self, object: &Expr, name: &Token) -> T;
     fn visit_set_expr(&mut self, object: &Expr, name: &Token, value: &Expr) -> T;
     fn visit_super_expr(&mut self, keyword: &Token, method: &Token) -> T;
     fn visit_this_expr(&mut self, keyword: &Token) -> T;
     */
+}
+
+impl Expr {
+    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
+        match self {
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => visitor.visit_binary_expr(left, operator, right),
+            Expr::Grouping { expression } => visitor.visit_grouping_expr(expression),
+            Expr::Literal { value } => visitor.visit_literal_expr(value),
+            Expr::Unary { operator, right } => visitor.visit_unary_expr(operator, right),
+            Expr::Variable { name } => visitor.visit_var_expr(name),
+            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => visitor.visit_logical_expr(left, operator, right),
+            Expr::Call {
+                callee, arguments, ..
+            } => visitor.visit_call_expr(callee, arguments),
+            _ => visitor.visit_literal_expr(&Object::None),
+            /*
+            Expr::Get { object, name } => visitor.visit_get_expr(object, name),
+            Expr::Set {
+                object,
+                name,
+                value,
+            } => visitor.visit_set_expr(object, name, value),
+            Expr::Super { keyword, method } => visitor.visit_super_expr(keyword, method),
+            Expr::This { keyword } => visitor.visit_this_expr(keyword),
+            */
+        }
+    }
 }
 
 impl ExprVisitor<String> for AstPrinter {
@@ -289,8 +325,7 @@ impl ExprVisitor<String> for AstPrinter {
         self.parenthesize(&operator.lexeme, &[left, right])
     }
 
-    /*
-    fn visit_call_expr(&self, callee: &Expr, arguments: &[Expr]) -> String {
+    fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> String {
         let mut result = format!("(call {}", callee.accept(self));
         for arg in arguments {
             result.push(' ');
@@ -300,6 +335,7 @@ impl ExprVisitor<String> for AstPrinter {
         result
     }
 
+    /*
     fn visit_get_expr(&self, object: &Expr, name: &Token) -> String {
         format!("(. {} {})", object.accept(self), name.lexeme)
     }
@@ -321,42 +357,6 @@ impl ExprVisitor<String> for AstPrinter {
         "this".to_string()
     }
     */
-}
-
-impl Expr {
-    pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
-        match self {
-            Expr::Binary {
-                left,
-                operator,
-                right,
-            } => visitor.visit_binary_expr(left, operator, right),
-            Expr::Grouping { expression } => visitor.visit_grouping_expr(expression),
-            Expr::Literal { value } => visitor.visit_literal_expr(value),
-            Expr::Unary { operator, right } => visitor.visit_unary_expr(operator, right),
-            Expr::Variable { name } => visitor.visit_var_expr(name),
-            Expr::Assign { name, value } => visitor.visit_assign_expr(name, value),
-            Expr::Logical {
-                left,
-                operator,
-                right,
-            } => visitor.visit_logical_expr(left, operator, right),
-            _ => visitor.visit_literal_expr(&Object::None),
-            /*
-            Expr::Call {
-                callee, arguments, ..
-            } => visitor.visit_call_expr(callee, arguments),
-            Expr::Get { object, name } => visitor.visit_get_expr(object, name),
-            Expr::Set {
-                object,
-                name,
-                value,
-            } => visitor.visit_set_expr(object, name, value),
-            Expr::Super { keyword, method } => visitor.visit_super_expr(keyword, method),
-            Expr::This { keyword } => visitor.visit_this_expr(keyword),
-            */
-        }
-    }
 }
 
 impl fmt::Display for Expr {
@@ -447,5 +447,76 @@ impl Stmt {
             Stmt::Return { keyword, value } =>
             */
         }
+    }
+}
+
+impl StmtVisitor<String> for AstPrinter {
+    fn visit_expression_stmt(&mut self, expression: &Expr) -> String {}
+
+    fn visit_print_stmt(&mut self, expression: &Expr) -> String {}
+
+    fn visit_var_stmt(&mut self, name: &Token, initializer: &Option<Expr>) -> String {}
+
+    fn visit_block_stmt(&mut self, statements: &[Stmt]) -> String {}
+
+    fn visit_if_stmt(
+        &mut self,
+        condition: &Expr,
+        then_branch: &Stmt,
+        else_branch: &Option<Stmt>,
+    ) -> String {
+    }
+
+    fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> String {}
+
+    /*
+    fn visit_binary_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> String {
+        self.parenthesize(&operator.lexeme, &[left, right])
+    }
+
+    fn visit_grouping_expr(&mut self, expression: &Expr) -> String {
+        self.parenthesize("group", &[expression])
+    }
+
+    fn visit_literal_expr(&mut self, value: &Object) -> String {
+        match value {
+            Object::String(s) => s.to_string(),
+            Object::Number(n) => n.to_string(),
+            Object::Bool(b) => b.to_string(),
+            Object::None => "None".to_string(),
+        }
+    }
+
+    fn visit_unary_expr(&mut self, operator: &Token, right: &Expr) -> String {
+        self.parenthesize(&operator.lexeme, &[right])
+    }
+
+    fn visit_var_expr(&mut self, name: &Token) -> String {
+        name.lexeme.clone()
+    }
+
+    fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> String {
+        format!("(= {} {})", name.lexeme, value.accept(self))
+    }
+
+    fn visit_logical_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> String {
+        self.parenthesize(&operator.lexeme, &[left, right])
+    }
+
+    fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> String {
+        let mut result = format!("(call {}", callee.accept(self));
+        for arg in arguments {
+            result.push(' ');
+            result.push_str(&arg.accept(self));
+        }
+        result.push(')');
+        result
+    }
+    */
+}
+
+impl fmt::Display for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", AstPrinter.print(self))
     }
 }

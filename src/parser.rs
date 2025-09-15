@@ -9,6 +9,7 @@ pub struct Parser {
     had_error: bool,
 }
 
+// TODO: write a cool visualizer for this
 impl Parser {
     pub fn new(tokens: &Vec<Token>) -> Self {
         Self {
@@ -366,8 +367,58 @@ impl Parser {
                 right: Box::new(right),
             })
         } else {
-            self.primary()
+            self.call()
         }
+    }
+
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.amatch(&[TokenType::LeftParen]) {
+                expr = self.finish_call(&expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: &Expr) -> Result<Expr, ParseError> {
+        let mut arguments = vec![];
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if arguments.len() >= 255 {
+                    let curr = self.peek();
+                    // TODO: don't throw error here! needs to just be a call to error
+                    LoxError::report(ParseError::MaxNumFuncParameters(
+                        curr.line,
+                        curr.lexeme,
+                        "can't have more than 255 arguments".to_string(),
+                    ));
+                    /*
+                    return Err(ParseError::MaxNumFuncParameters(
+                        curr.line,
+                        curr.lexeme,
+                        "can't have more than 255 arguments".to_string(),
+                    ));
+                    */
+                }
+                arguments.push(self.expression()?);
+                if !self.amatch(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        let paren = self.consume(&TokenType::RightParen, "expect ')' after arguments")?;
+
+        Ok(Expr::Call {
+            callee: Box::new(callee.clone()),
+            paren,
+            arguments,
+        })
     }
 
     /// primary        → NUMBER | STRING | "true" | "false" | "none" | "(" expression ")" ;

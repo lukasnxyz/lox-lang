@@ -86,6 +86,7 @@ impl fmt::Display for LexError {
 pub enum ParseError {
     InvalidExpression(usize, String, String),
     InvalidAssignment(usize, String, String),
+    MaxNumFuncParameters(usize, String, String),
     EndOfExpression(String),
     Error(String),
 }
@@ -108,6 +109,16 @@ impl fmt::Display for ParseError {
                 "{}: {}\n{}[Line {} Error in '{}']: {}",
                 red_text!("error"),
                 "ParseError::InvalidAssignment",
+                error_indent!(),
+                line,
+                lexeme,
+                msg
+            ),
+            ParseError::MaxNumFuncParameters(line, lexeme, msg) => write!(
+                f,
+                "{}: {}\n{}[Line {} Error in '{}']: {}",
+                red_text!("error"),
+                "ParseError::MaxNumFuncParameters",
                 error_indent!(),
                 line,
                 lexeme,
@@ -143,6 +154,7 @@ pub enum RuntimeError {
     NumberStringAddition(usize, String, String),
     ValueNotFound(usize, String, String),
     VariableUninitialized(usize, String, String),
+    InvalidNumArgs(String),
 }
 
 impl fmt::Display for RuntimeError {
