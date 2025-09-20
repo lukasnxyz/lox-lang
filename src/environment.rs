@@ -1,85 +1,85 @@
 use crate::{
-    errors::EnvError,
-    types::{Object, Token},
+  errors::EnvError,
+  types::{Object, Token},
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, Default)]
 pub struct Env {
-    values: HashMap<String, Object>,
-    enclosing: Option<Rc<RefCell<Env>>>,
+  values: HashMap<String, Object>,
+  enclosing: Option<Rc<RefCell<Env>>>,
 }
 
 impl Env {
-    pub fn new() -> Self {
-        Self {
-            values: HashMap::new(),
-            enclosing: None,
-        }
+  pub fn new() -> Self {
+    Self {
+      values: HashMap::new(),
+      enclosing: None,
+    }
+  }
+
+  pub fn new_enclosing(enclosing: Rc<RefCell<Env>>) -> Self {
+    Self {
+      values: HashMap::new(),
+      enclosing: Some(enclosing),
+    }
+  }
+
+  pub fn get(&self, name: &Token) -> Result<Object, EnvError> {
+    if let Some(val) = self.values.get(&name.lexeme) {
+      return Ok(val.clone());
     }
 
-    pub fn new_enclosing(enclosing: Rc<RefCell<Env>>) -> Self {
-        Self {
-            values: HashMap::new(),
-            enclosing: Some(enclosing),
-        }
+    if let Some(enclosing) = &self.enclosing {
+      return enclosing.borrow_mut().get(name);
     }
 
-    pub fn get(&self, name: &Token) -> Result<Object, EnvError> {
-        if let Some(val) = self.values.get(&name.lexeme) {
-            return Ok(val.clone());
-        }
+    Err(EnvError::ValueNotFound(
+      name.line,
+      name.lexeme.clone(),
+      format!("no value found for var {}", name.lexeme.clone()),
+    ))
+  }
 
-        if let Some(enclosing) = &self.enclosing {
-            return enclosing.borrow_mut().get(name);
-        }
+  pub fn define(&mut self, name: &str, value: &Object) {
+    self.values.insert(name.to_string(), value.clone());
+  }
 
-        Err(EnvError::ValueNotFound(
-            name.line,
-            name.lexeme.clone(),
-            format!("no value found for var {}", name.lexeme.clone()),
-        ))
+  pub fn assign(&mut self, name: &Token, value: &Object) -> Result<(), EnvError> {
+    if self.values.contains_key(&name.lexeme) {
+      self.values.insert(name.lexeme.clone(), value.clone());
+      return Ok(());
     }
 
-    pub fn define(&mut self, name: &str, value: &Object) {
-        self.values.insert(name.to_string(), value.clone());
+    if let Some(enclosing) = self.enclosing.as_mut() {
+      enclosing.borrow_mut().assign(name, value)?;
+      return Ok(());
     }
 
-    pub fn assign(&mut self, name: &Token, value: &Object) -> Result<(), EnvError> {
-        if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.clone(), value.clone());
-            return Ok(());
-        }
+    Err(EnvError::ValueNotFound(
+      name.line,
+      name.lexeme.to_string(),
+      "undefined variable".to_string(),
+    ))
+  }
 
-        if let Some(enclosing) = self.enclosing.as_mut() {
-            enclosing.borrow_mut().assign(name, value)?;
-            return Ok(());
-        }
-
-        Err(EnvError::ValueNotFound(
-            name.line,
-            name.lexeme.to_string(),
-            "undefined variable".to_string(),
-        ))
-    }
-
-    /*
-    pub fn assign(&mut self, name: &Token, value: &Object) -> Result<(), EnvError> {
-        match self.values.get(&name.lexeme) {
-            Some(_) => {
-                // TODO: do I need an unwrap here?
-                self.values.insert(name.lexeme.to_string(), value.clone());
-                Ok(())
-            }
-            None if self.enclosing.is_some() => {
-                self.enclosing.as_mut().unwrap().assign(name, value)
-            }
-            None => Err(EnvError::ValueNotFound(
-                name.line,
-                name.lexeme.to_string(),
-                "undefined variable".to_string(),
-            )),
-        }
-    }
-    */
+  /*
+  pub fn assign(&mut self, name: &Token, value: &Object) -> Result<(), EnvError> {
+      match self.values.get(&name.lexeme) {
+          Some(_) => {
+              // TODO: do I need an unwrap here?
+              self.values.insert(name.lexeme.to_string(), value.clone());
+              Ok(())
+          }
+          None if self.enclosing.is_some() => {
+              self.enclosing.as_mut().unwrap().assign(name, value)
+          }
+          None => Err(EnvError::ValueNotFound(
+              name.line,
+              name.lexeme.to_string(),
+              "undefined variable".to_string(),
+          )),
+      }
+  }
+  */
 }

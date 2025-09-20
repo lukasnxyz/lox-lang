@@ -1,0 +1,38 @@
+func say_hi(first, last) {
+  print "Hi, " + first + " " + last + "!";
+}
+
+say_hi("Dear", "Reader");
+
+func add(a, b) {
+  print a + b;
+}
+
+add(3, 4);
+
+print("fibonacci numbers:");
+
+func fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 2) + fib(n - 1);
+}
+
+for (var i = 0; i < 20; i = i + 1) {
+  print fib(i);
+}
+
+print("testing nested functions:");
+
+func makeCounter() {
+  var i = 0;
+  func count() {
+    i = i + 1;
+    print i;
+  }
+
+  return count;
+}
+
+var counter = makeCounter();
+counter(); // "1".
+counter(); // "2".
