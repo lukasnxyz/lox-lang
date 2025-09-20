@@ -306,11 +306,14 @@ impl StmtVisitor<Result<(), RuntimeError>> for Interpreter {
     params: &Vec<Token>,
     body: &Vec<Stmt>,
   ) -> Result<(), RuntimeError> {
-    let function = Object::Callable(Rc::new(LoxFunction::new(Stmt::Function {
-      name: name.clone(),
-      params: params.to_vec(),
-      body: body.to_vec(),
-    }, Rc::clone(&self.env))));
+    let function = Object::Callable(Rc::new(LoxFunction::new(
+      Stmt::Function {
+        name: name.clone(),
+        params: params.to_vec(),
+        body: body.to_vec(),
+      },
+      Rc::clone(&self.env),
+    )));
     self.env.borrow_mut().define(&name.lexeme, &function);
 
     Ok(())

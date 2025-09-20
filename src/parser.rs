@@ -196,6 +196,7 @@ impl Parser {
     Ok(Stmt::Expression { expression: expr })
   }
 
+  // TODO: add anonymous function syntax (lambdas)
   fn function(&mut self, kind: &str) -> Result<Stmt, ParseError> {
     let name = self.consume(&TokenType::Identifier, &format!("expected {} name.", kind))?;
     self.consume(
