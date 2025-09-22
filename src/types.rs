@@ -1,8 +1,8 @@
-use std::{cmp, fmt, rc::Rc};
+use std::{cmp, fmt, hash, rc::Rc};
 
 use crate::{callable::Callable, errors::RuntimeError};
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub enum TokenType {
   // single-character tokens
   LeftParen,
@@ -62,8 +62,6 @@ pub enum Object {
   None,
 }
 
-// TODO: impl PartialOrd for Object custom to define the exact behaviour
-
 impl fmt::Display for Object {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(
@@ -94,6 +92,8 @@ impl PartialEq for Object {
   }
 }
 
+impl Eq for Object {}
+
 impl PartialOrd for Object {
   // >, >=, <, <=
   fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
@@ -102,6 +102,25 @@ impl PartialOrd for Object {
       (Object::r#String(a), Object::r#String(b)) => a.partial_cmp(b),
       (Object::Bool(a), Object::Bool(b)) => a.partial_cmp(b),
       _ => None,
+    }
+  }
+}
+
+impl hash::Hash for Object {
+  fn hash<H: hash::Hasher>(&self, state: &mut H) {
+    use Object::*;
+    std::mem::discriminant(self).hash(state);
+    match self {
+      Number(n) => {
+        // for f64, Nan != Nan and can cause issues with Hash/Eq
+        // common approach is to hash the bits directly
+        let bits: u64 = n.to_bits();
+        bits.hash(state);
+      }
+      String(s) => s.hash(state),
+      Bool(b) => b.hash(state),
+      Callable(_c) => {}
+      None => {}
     }
   }
 }
@@ -156,7 +175,7 @@ impl Object {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct Token {
   pub token_type: TokenType,
   pub lexeme: String,
@@ -213,7 +232,7 @@ impl AstPrinter {
 
 // TODO: ideally make this a macro so I can dynamically just define the grammer in a string and
 //  have it expand to this
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Hash)]
 pub enum Expr {
   Assign {
     name: Token,
@@ -265,23 +284,7 @@ pub enum Expr {
   },
 }
 
-pub trait ExprVisitor<T> {
-  fn visit_binary_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
-  fn visit_grouping_expr(&mut self, expression: &Expr) -> T;
-  fn visit_literal_expr(&mut self, value: &Object) -> T;
-  fn visit_unary_expr(&mut self, operator: &Token, right: &Expr) -> T;
-  fn visit_var_expr(&mut self, name: &Token) -> T;
-  fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> T;
-  fn visit_logical_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
-  fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> T;
-
-  /*
-  fn visit_get_expr(&mut self, object: &Expr, name: &Token) -> T;
-  fn visit_set_expr(&mut self, object: &Expr, name: &Token, value: &Expr) -> T;
-  fn visit_super_expr(&mut self, keyword: &Token, method: &Token) -> T;
-  fn visit_this_expr(&mut self, keyword: &Token) -> T;
-  */
-}
+impl Eq for Expr {}
 
 impl Expr {
   pub fn accept<T>(&self, visitor: &mut dyn ExprVisitor<T>) -> T {
@@ -317,6 +320,24 @@ impl Expr {
       */
     }
   }
+}
+
+pub trait ExprVisitor<T> {
+  fn visit_binary_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
+  fn visit_grouping_expr(&mut self, expression: &Expr) -> T;
+  fn visit_literal_expr(&mut self, value: &Object) -> T;
+  fn visit_unary_expr(&mut self, operator: &Token, right: &Expr) -> T;
+  fn visit_var_expr(&mut self, name: &Token) -> T;
+  fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> T;
+  fn visit_logical_expr(&mut self, left: &Expr, operator: &Token, right: &Expr) -> T;
+  fn visit_call_expr(&mut self, callee: &Expr, arguments: &[Expr]) -> T;
+
+  /*
+  fn visit_get_expr(&mut self, object: &Expr, name: &Token) -> T;
+  fn visit_set_expr(&mut self, object: &Expr, name: &Token, value: &Expr) -> T;
+  fn visit_super_expr(&mut self, keyword: &Token, method: &Token) -> T;
+  fn visit_this_expr(&mut self, keyword: &Token) -> T;
+  */
 }
 
 impl ExprVisitor<String> for AstPrinter {
@@ -434,24 +455,6 @@ pub enum Stmt {
   },
 }
 
-pub trait StmtVisitor<T> {
-  fn visit_expression_stmt(&mut self, expression: &Expr) -> T;
-  fn visit_print_stmt(&mut self, expression: &Expr) -> T;
-  fn visit_var_stmt(&mut self, name: &Token, initializer: &Option<Expr>) -> T;
-  fn visit_block_stmt(&mut self, statements: &[Stmt]) -> T;
-  fn visit_if_stmt(
-    &mut self,
-    condition: &Expr,
-    then_branch: &Stmt,
-    else_branch: &Option<Stmt>,
-  ) -> T;
-  fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> T;
-  fn visit_function_stmt(&mut self, name: &Token, params: &Vec<Token>, body: &Vec<Stmt>) -> T;
-  fn visit_return_stmt(&mut self, keyword: &Token, value: &Option<Expr>) -> T;
-
-  // fn visit_class_stmt(&mut self, name: &Token, superclass: &Expr, methods: &Vec<Stmt>) -> T;
-}
-
 impl Stmt {
   pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> T {
     match self {
@@ -475,6 +478,24 @@ impl Stmt {
       */
     }
   }
+}
+
+pub trait StmtVisitor<T> {
+  fn visit_expression_stmt(&mut self, expression: &Expr) -> T;
+  fn visit_print_stmt(&mut self, expression: &Expr) -> T;
+  fn visit_var_stmt(&mut self, name: &Token, initializer: &Option<Expr>) -> T;
+  fn visit_block_stmt(&mut self, statements: &[Stmt]) -> T;
+  fn visit_if_stmt(
+    &mut self,
+    condition: &Expr,
+    then_branch: &Stmt,
+    else_branch: &Option<Stmt>,
+  ) -> T;
+  fn visit_while_stmt(&mut self, condition: &Expr, body: &Stmt) -> T;
+  fn visit_function_stmt(&mut self, name: &Token, params: &Vec<Token>, body: &Vec<Stmt>) -> T;
+  fn visit_return_stmt(&mut self, keyword: &Token, value: &Option<Expr>) -> T;
+
+  // fn visit_class_stmt(&mut self, name: &Token, superclass: &Expr, methods: &Vec<Stmt>) -> T;
 }
 
 /*

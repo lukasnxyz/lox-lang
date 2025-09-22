@@ -9,6 +9,7 @@ pub enum LoxError {
   ParseError(ParseError),
   RuntimeError(RuntimeError),
   EnvError(EnvError),
+  SemanticPassError(usize, String, String),
 }
 
 impl fmt::Display for LoxError {
@@ -20,6 +21,16 @@ impl fmt::Display for LoxError {
       LoxError::ParseError(e) => write!(f, "{}", e),
       LoxError::RuntimeError(e) => write!(f, "{}", e),
       LoxError::EnvError(e) => write!(f, "{}", e),
+      LoxError::SemanticPassError(line, lexeme, msg) => write!(
+        f,
+        "{}: {}\n{}[Line {} Error in '{}']: {}",
+        red_text!("error"),
+        "Semantic Pass Error",
+        error_indent!(),
+        line + 1,
+        lexeme,
+        msg
+      ),
     }
   }
 }
@@ -62,7 +73,7 @@ impl fmt::Display for LexError {
         red_text!("error"),
         "LexError::IncompleteString",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -72,7 +83,7 @@ impl fmt::Display for LexError {
         red_text!("error"),
         "LexError::UnknownChar",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -100,7 +111,7 @@ impl fmt::Display for ParseError {
         red_text!("error"),
         "ParseError::InvalidExpression",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -110,7 +121,7 @@ impl fmt::Display for ParseError {
         red_text!("error"),
         "ParseError::InvalidAssignment",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -120,7 +131,7 @@ impl fmt::Display for ParseError {
         red_text!("error"),
         "ParseError::MaxNumFuncParameters",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -165,31 +176,39 @@ impl fmt::Debug for RuntimeError {
         write!(
           f,
           "[line {}] Invalid type: got {}, expected {}",
-          line, got, expected
+          line + 1,
+          got,
+          expected
         )
       }
       RuntimeError::NumberStringAddition(line, left, right) => {
         write!(
           f,
           "[line {}] Cannot add number {} and string {}",
-          line, left, right
+          line + 1,
+          left,
+          right
         )
       }
       RuntimeError::ValueNotFound(line, name, msg) => {
-        write!(f, "[line {}] Value not found: {} ({})", line, name, msg)
+        write!(f, "[line {}] Value not found: {} ({})", line + 1, name, msg)
       }
       RuntimeError::VariableUninitialized(line, name, msg) => {
         write!(
           f,
           "[line {}] Variable '{}' uninitialized ({})",
-          line, name, msg
+          line + 1,
+          name,
+          msg
         )
       }
       RuntimeError::InvalidFunctionCall(line, name, msg) => {
         write!(
           f,
           "[line {}] Invalid function call '{}' ({})",
-          line, name, msg
+          line + 1,
+          name,
+          msg
         )
       }
       RuntimeError::ReturnCalled(val) => match val {
@@ -212,7 +231,7 @@ impl fmt::Display for RuntimeError {
         red_text!("error"),
         "RuntimeError::InvalidType",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -222,7 +241,7 @@ impl fmt::Display for RuntimeError {
         red_text!("error"),
         "RuntimeError::NumberStringAddition",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -232,7 +251,7 @@ impl fmt::Display for RuntimeError {
         red_text!("error"),
         "RuntimeError::UnknownVariable",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -242,7 +261,7 @@ impl fmt::Display for RuntimeError {
         red_text!("error"),
         "RuntimeError::VariableUninitialized",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -252,7 +271,7 @@ impl fmt::Display for RuntimeError {
         red_text!("error"),
         "RuntimeError::InvalidFunctionCall",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),
@@ -290,7 +309,7 @@ impl fmt::Display for EnvError {
         red_text!("error"),
         "EnvError::ValueNotFound",
         error_indent!(),
-        line,
+        line + 1,
         lexeme,
         msg
       ),

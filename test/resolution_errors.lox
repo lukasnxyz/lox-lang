@@ -1,0 +1,5 @@
+func bad() {
+  print "hello world";
+  var a = "first";
+  var b = "second";
+}

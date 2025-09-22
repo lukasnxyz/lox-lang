@@ -2,7 +2,7 @@ use crate::{
   environment::Env,
   errors::RuntimeError,
   interpreter::Interpreter,
-  types::{Object, Stmt, Token},
+  types::{Object, Stmt},
 };
 use std::{cell::RefCell, fmt, rc::Rc, time};
 
@@ -19,7 +19,7 @@ pub struct ClockFn;
 
 impl fmt::Display for ClockFn {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "<fn>")
+    write!(f, "<fn> clock")
   }
 }
 
@@ -59,7 +59,7 @@ impl LoxFunction {
 impl fmt::Display for LoxFunction {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if let Stmt::Function { name, .. } = &self.declaration {
-      write!(f, "<fn> {}", name.lexeme)
+      write!(f, "<fn {}>", name.lexeme)
     } else {
       write!(f, "function not callabe")
     }

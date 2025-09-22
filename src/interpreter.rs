@@ -5,11 +5,12 @@ use crate::{
   types::{Expr, ExprVisitor, Object, Stmt, StmtVisitor, Token, TokenType},
 };
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct Interpreter {
   pub globals: Rc<RefCell<Env>>,
   env: Rc<RefCell<Env>>,
+  locals: HashMap<Expr, i32>, // aka: side table
 }
 
 impl Interpreter {
@@ -23,6 +24,7 @@ impl Interpreter {
     Self {
       globals: globals.clone(),
       env: globals,
+      locals: HashMap::new(),
     }
   }
 
@@ -41,6 +43,10 @@ impl Interpreter {
         Err(e) => LoxError::report(&LoxError::RuntimeError(e)),
       }
     }
+  }
+
+  pub fn resolve(&mut self, expression: &Expr, depth: usize) {
+    self.locals.insert(expression.clone(), depth as i32);
   }
 
   fn check_num_operand(operand: &Object, operator: &Token) -> Result<(), RuntimeError> {
@@ -85,6 +91,13 @@ impl Interpreter {
     self.env = previous;
 
     result
+  }
+
+  fn look_up_variable(&self, name: &Token, expr: &Expr) -> Result<Object, RuntimeError> {
+    match self.locals.get(expr) {
+      Some(distance) => Ok(Env::get_at(Rc::clone(&self.env), *distance, &name.lexeme).unwrap()),
+      None => Ok(self.globals.borrow_mut().get(name).unwrap()),
+    }
   }
 }
 
@@ -169,33 +182,18 @@ impl ExprVisitor<Result<Object, RuntimeError>> for Interpreter {
   }
 
   fn visit_var_expr(&mut self, name: &Token) -> Result<Object, RuntimeError> {
-    match self.env.borrow().get(name) {
-      Ok(val) => match val {
-        Object::None => Err(RuntimeError::VariableUninitialized(
-          name.line,
-          name.lexeme.clone(),
-          "variable uninitialized".to_string(),
-        )),
-        _ => Ok(val),
-      },
-      Err(e) => Err(RuntimeError::ValueNotFound(
-        name.line,
-        name.lexeme.clone(),
-        e.to_string(),
-      )),
-    }
+    self.look_up_variable(name, &Expr::Variable { name: name.clone() })
   }
 
   fn visit_assign_expr(&mut self, name: &Token, value: &Expr) -> Result<Object, RuntimeError> {
-    let value = value.accept(self)?;
-    match self.env.borrow_mut().assign(&name, &value) {
-      Ok(_) => Ok(value),
-      Err(_) => Err(RuntimeError::ValueNotFound(
-        name.line,
-        name.lexeme.to_string(),
-        "undefined variable".to_string(),
-      )),
+    let ret_value = value.accept(self)?;
+
+    match self.locals.get(value) {
+      Some(distance) => Env::assign_at(Rc::clone(&self.env), *distance, name, &ret_value),
+      None => self.globals.borrow_mut().assign(name, &ret_value).unwrap()
     }
+
+    Ok(ret_value)
   }
 
   fn visit_logical_expr(

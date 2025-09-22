@@ -1,3 +1,6 @@
+#![feature(vec_peek_mut)]
+#![feature(map_try_insert)]
+
 use crate::lox::Lox;
 use std::env;
 
@@ -9,6 +12,7 @@ mod lexer;
 mod lox;
 mod macros;
 mod parser;
+mod resolver;
 mod types;
 
 fn main() {

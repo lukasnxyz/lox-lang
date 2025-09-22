@@ -1,4 +1,4 @@
-use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser};
+use crate::{errors::LoxError, interpreter::Interpreter, lexer::Lexer, parser::Parser, resolver::{self, Resolver}};
 use std::{
   fs,
   io::{self, Write},
@@ -34,6 +34,12 @@ impl Lox {
     // TODO: can print the statements here but need to implement an AstPrint for it
 
     let mut interpreter = Interpreter::new();
+
+    let mut resolver = Resolver::new(&mut interpreter);
+    resolver.resolve_stmts(&statements);
+
+    // TODO: don't interpret if there was an error
+
     interpreter.interpret(statements, repl);
 
     Ok(())

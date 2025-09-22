@@ -503,12 +503,11 @@ impl Parser {
         expression: Box::new(expr),
       })
     } else {
-      let err = LoxError::ParseError(ParseError::InvalidExpression(
+      LoxError::report(&LoxError::ParseError(ParseError::InvalidExpression(
         self.peek().line,
         self.peek().lexeme,
         "expect expression".to_string(),
-      ));
-      LoxError::report(&err);
+      )));
       self.synchronize();
 
       // TODO: possibly remove this all here as its handled in the parse func now
@@ -552,5 +551,45 @@ impl Parser {
 
       self.advance();
     }
+  }
+}
+
+#[cfg(test)]
+mod parser_tests {
+  use super::*;
+  use crate::lexer::Lexer;
+
+  fn run(source: &str) -> Result<Vec<Stmt>, LoxError> {
+    let mut lexer = Lexer::new(source);
+    let tokens = match lexer.lex_tokens() {
+      Ok(tokens) => tokens,
+      Err(e) => {
+        LoxError::report(&LoxError::LexError(e.clone()));
+        return Err(LoxError::LexError(e));
+      }
+    };
+
+    let mut parser = Parser::new(tokens);
+    let statements = match parser.parse() {
+      Ok(statements) => statements,
+      Err(e) => {
+        LoxError::report(&LoxError::ParseError(e.clone()));
+        return Err(LoxError::ParseError(e));
+      }
+    };
+
+    Ok(statements)
+  }
+
+  #[test]
+  fn func_params_missing_commas() {
+    let c = r#"
+    func add(a b) {
+      return a + b;
+    }
+    var a = add(1, 2);
+    "#;
+    let r = run(c);
+    assert!(r.is_err());
   }
 }
