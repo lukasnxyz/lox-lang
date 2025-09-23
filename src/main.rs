@@ -15,6 +15,8 @@ mod parser;
 mod resolver;
 mod types;
 
+// TODO: implement classes (although I only want structs)
+
 fn main() {
   let args: Vec<String> = env::args().collect();
 
